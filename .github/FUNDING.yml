@@ -1,0 +1,13 @@
+# GitHub Sponsors funding configuration for stratorama-addon.
+# Shows a "Sponsor" button at the top of this repo's GitHub page.
+#
+# Sponsorships go through the personal account `julienguedon` until the
+# `stratorama` organization is verified for Sponsors at org level (which
+# requires fiscal/tax verification by GitHub).
+#
+# The `custom` URL points to the in-app /backers page on stratorama.app,
+# which gives context (existing supporters, what funds are used for) and
+# also links to GitHub Sponsors via its CTA.
+
+github: julienguedon
+custom: ["https://stratorama.app/backers"]

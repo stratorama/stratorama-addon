@@ -1,0 +1,30 @@
+name: "Stratorama - Agent"
+version: "0.1.0"
+slug: "stratorama_agent"
+description: "Connecte votre Home Assistant à Stratorama via un tunnel sécurisé."
+image: "ghcr.io/stratorama/{arch}-stratorama-agent"
+arch:
+  - aarch64
+  - amd64
+
+# Allow the add-on to call the local Home Assistant Core API.
+# This auto-injects SUPERVISOR_TOKEN and exposes http://supervisor/core
+# (REST) and ws://supervisor/core/api/websocket (WS).
+homeassistant_api: true
+
+# Outbound network only — no port to expose.
+host_network: false
+
+# Persistent /data/ across restarts/upgrades — used to store the agent token.
+options:
+  pairing_code: ""
+  tunnel_url: "wss://stratorama.app/agent"
+
+schema:
+  pairing_code: "str?"
+  tunnel_url: "url"
+
+# Friendly defaults & description shown in the HA UI.
+init: false
+boot: auto
+startup: services

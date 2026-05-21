@@ -1,0 +1,60 @@
+# Multi-arch builder for the HA add-on.
+#
+# Layout: the add-on lives in ./stratorama_agent/ (a sub-folder is required
+# by the HA Supervisor — it scans subdirectories for config.yaml and
+# does not look at the repo root). A repository.yaml at the root marks
+# this repo as a HA add-on repository.
+#
+# Trigger: push to main (smoke build) and manual dispatch (release build).
+
+name: Builder
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/README.md'
+      - '**/CHANGELOG.md'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # armv7 dropped — QEMU emulation of `npm install` on GHA free runners
+        # consistently exceeds the 6h job timeout. Re-add if/when a faster
+        # runner (real ARM, or self-hosted) is available.
+        arch: [aarch64, amd64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get add-on info
+        id: info
+        uses: home-assistant/actions/helpers/info@master
+        with:
+          path: './stratorama_agent'
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build add-on (${{ matrix.arch }})
+        uses: home-assistant/builder@2024.03.5
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target /data/stratorama_agent \
+            --image "{arch}-stratorama-agent" \
+            --docker-hub "ghcr.io/${{ github.repository_owner }}" \
+            ${{ github.event_name == 'pull_request' && '--test' || '' }}

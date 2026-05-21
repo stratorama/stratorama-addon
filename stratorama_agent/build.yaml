@@ -1,0 +1,6 @@
+# Per-arch base image used to substitute ARG BUILD_FROM in Dockerfile.
+# Pin a specific version so rebuilds are reproducible.
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base:3.20
+  amd64:   ghcr.io/home-assistant/amd64-base:3.20
+  armv7:   ghcr.io/home-assistant/armv7-base:3.20
