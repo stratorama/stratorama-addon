@@ -58,3 +58,38 @@ jobs:
             --image "{arch}-stratorama-agent" \
             --docker-hub "ghcr.io/${{ github.repository_owner }}" \
             ${{ github.event_name == 'pull_request' && '--test' || '' }}
+
+      # config.yaml declares `image:`, so the Supervisor PULLS this image on
+      # install instead of building it - and a package first pushed to an org
+      # with GITHUB_TOKEN is PRIVATE by default. A private image is an add-on
+      # nobody but us can install (found 2026-09-03: anonymous pulls answered
+      # 401 while the login step above kept every run of this workflow green).
+      # Visibility is a package setting, not a workflow one; this step only
+      # proves it, from the registry's anonymous side, so a package flipped
+      # back to private turns this workflow red instead of silently breaking
+      # every install.
+      - name: Verify the image is anonymously pullable
+        if: github.event_name != 'pull_request'
+        env:
+          REPO: ${{ github.repository_owner }}/${{ matrix.arch }}-stratorama-agent
+          SETTINGS: https://github.com/orgs/${{ github.repository_owner }}/packages/container/${{ matrix.arch }}-stratorama-agent/settings
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version: *"\{0,1\}\([^"]*\)"\{0,1\} *$/\1/p' stratorama_agent/config.yaml)
+          test -n "$version"
+          resp=$(curl -sS -w '\n%{http_code}' "https://ghcr.io/token?scope=repository:${REPO}:pull")
+          code=${resp##*$'\n'}
+          if [ "$code" != "200" ]; then
+            echo "::error::ghcr.io/${REPO} is not anonymously readable (token endpoint HTTP ${code}). Make the package public: ${SETTINGS}"
+            exit 1
+          fi
+          token=$(printf '%s' "${resp%$'\n'*}" | jq -r .token)
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${token}" \
+            -H 'Accept: application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json' \
+            "https://ghcr.io/v2/${REPO}/manifests/${version}")
+          if [ "$code" != "200" ]; then
+            echo "::error::ghcr.io/${REPO}:${version} is not anonymously pullable (manifest HTTP ${code}). Make the package public: ${SETTINGS}"
+            exit 1
+          fi
+          echo "ghcr.io/${REPO}:${version} is public (manifest HTTP 200)"
