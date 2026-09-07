@@ -8,8 +8,11 @@ FROM ${BUILD_FROM} AS builder
 RUN apk add --no-cache nodejs npm
 
 WORKDIR /build
-COPY package.json tsconfig.json ./
-RUN npm install --no-audit --no-fund --include=dev
+# The lockfile travels with package.json and `npm ci` installs exactly what it
+# pins. `npm install` from package.json alone let `ws ^8.x` float per build, so
+# two builds of the same commit could ship two different dependency trees.
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci --no-audit --no-fund --include=dev
 
 COPY src ./src
 RUN npx tsc
@@ -20,8 +23,8 @@ FROM ${BUILD_FROM}
 RUN apk add --no-cache nodejs npm
 
 WORKDIR /app
-COPY package.json ./
-RUN npm install --no-audit --no-fund --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund --omit=dev
 
 COPY --from=builder /build/dist ./dist
 COPY run.sh ./

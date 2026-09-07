@@ -1,7 +1,8 @@
 name: "Stratorama - Agent"
-version: "0.1.0"
+version: "1.0.0"
 slug: "stratorama_agent"
-description: "Connecte votre Home Assistant à Stratorama via un tunnel sécurisé."
+description: "Connects your Home Assistant to Stratorama through one outbound, encrypted connection - no open port, no exposed instance."
+url: "https://github.com/stratorama/stratorama-addon"
 image: "ghcr.io/stratorama/{arch}-stratorama-agent"
 arch:
   - aarch64
@@ -12,10 +13,10 @@ arch:
 # (REST) and ws://supervisor/core/api/websocket (WS).
 homeassistant_api: true
 
-# Outbound network only — no port to expose.
+# Outbound network only - no port to expose.
 host_network: false
 
-# Persistent /data/ across restarts/upgrades — used to store the agent token.
+# Persistent /data/ across restarts/upgrades - used to store the agent token.
 options:
   pairing_code: ""
   tunnel_url: "wss://stratorama.app/agent"
@@ -24,7 +25,7 @@ schema:
   pairing_code: "str?"
   tunnel_url: "url"
 
-# Friendly defaults & description shown in the HA UI.
+# Labels and help text for the two options live in translations/en.yaml.
 init: false
 boot: auto
 startup: services
