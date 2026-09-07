@@ -65,7 +65,7 @@ read-only sensors (`sensor.*`).
 
 | Direction | What | How much |
 |---|---|---|
-| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position) | on demand |
+| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The add-on itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
 | Home Assistant -> relay | every `state_changed` event | continuous |
 
 State changes cross the relay **in memory only**: nothing is written to disk there, and each
@@ -103,13 +103,21 @@ replaces the first one's credential.
 
 ## Troubleshooting
 
-Everything the add-on has to say is in its **Log** tab.
+Everything the add-on has to say is in its **Log** tab. When it stops on purpose (the first
+five rows), Home Assistant shows it as stopped with an error: nothing will change until the
+configuration does, so it does not keep knocking on the relay every minute.
 
 | Log says | Meaning | What to do |
 |---|---|---|
-| `Code invalide`, `Code expiré`, `Code déjà utilisé` | the pairing code is wrong, older than 10 minutes, or already used | generate a new code in Stratorama, paste it, save, restart |
-| `Token agent invalide` | the credential was revoked (Disconnect was pressed, or another Home Assistant was paired to the home) | pair again with a fresh code |
-| `Tunnel WS error` repeating, add-on shows Running, Stratorama shows Not connected | the add-on cannot reach `stratorama.app` on port 443 | check your firewall and DNS; the add-on retries on its own, up to once a minute |
+| `Pairing refused: the relay does not know this pairing code` | mistyped, or refused after too many attempts | generate a new code in Stratorama, paste it into **Pairing code**, save, start |
+| `Pairing refused: this pairing code has already been used` | a code works once | same |
+| `Pairing refused: this pairing code has expired` | a code is valid for 10 minutes | same |
+| `The relay no longer accepts this add-on's credential` | Disconnect was pressed in Stratorama, or another Home Assistant was paired to the home | same; if a fresh code is already in the configuration, the add-on tries it by itself |
+| `No stored credential and no pairing code in the configuration` | first start without a code | same |
+| `Relay WS error` repeating, add-on Running, Stratorama Not connected | the add-on cannot reach `stratorama.app` on port 443 | check your firewall and DNS; the add-on retries on its own, up to once a minute |
+| `No frame from the relay for 90 s` | the network dropped the connection silently (NAT, ISP); the add-on reconnects by itself | nothing, unless it repeats every few minutes: then look at the network |
+| `refusing it for now`, `reconnecting in 5 min` | this address failed too many pairings in 15 minutes | wait, then check the pairing code |
+| `Refusing ha:request`, `not one of the calls this add-on relays` | Stratorama asked for something this version does not relay | update the add-on |
 | `HA WS auth invalid` | the Supervisor token is not reaching the add-on | only possible on a fork that dropped `homeassistant_api: true` |
 | Store says "not compatible with your system" | 32-bit (armv7) or i386 machine | not supported |
 | Install fails while pulling the image | registry hiccup | retry in a minute, then open an issue |
@@ -131,10 +139,19 @@ npm run typecheck
 docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20 -t stratorama-agent:dev .
 ```
 
-`.github/workflows/builder.yml` builds and publishes the amd64 and aarch64 images to GHCR on
-every push to `main`, then checks that a stranger can pull them - the one thing a private
-image silently breaks. Wire types in `src/types.ts` must stay in step with the relay's
-(`stratorama-tunnel/src/types.ts`).
+`npm test` runs the suite: the client against an in-process relay and a fake Home Assistant,
+and the pin that `config.yaml` (the version the store shows) and `package.json` (the version
+the agent reports) carry the same number.
+
+Outside Home Assistant, the agent runs against any instance: set `SUPERVISOR_TOKEN` to a
+long-lived access token from your profile page, `HA_HTTP_URL` and `HA_WS_URL` to the instance
+(`http://ha.local:8123`, `ws://ha.local:8123/api/websocket`), `TUNNEL_URL` to a relay and
+`PAIRING_CODE` to a code, then `npm run build && npm start`.
+
+`.github/workflows/builder.yml` runs the tests, builds and publishes the amd64 and aarch64
+images to GHCR on every push to `main`, then checks that a stranger can pull them - the one
+thing a private image silently breaks. Wire types in `src/types.ts` must stay in step with
+the relay's (`stratorama-tunnel/src/types.ts`).
 
 ## Licence
 

@@ -1,7 +1,7 @@
 # Multi-arch builder for the HA add-on.
 #
 # Layout: the add-on lives in ./stratorama_agent/ (a sub-folder is required
-# by the HA Supervisor — it scans subdirectories for config.yaml and
+# by the HA Supervisor - it scans subdirectories for config.yaml and
 # does not look at the repo root). A repository.yaml at the root marks
 # this repo as a HA add-on repository.
 #
@@ -23,12 +23,37 @@ permissions:
   packages: write
 
 jobs:
+  # Typecheck and the test suite: the agent against an in-process relay and a
+  # fake Home Assistant, plus the pin that config.yaml (the version the store
+  # shows) and package.json (the version the agent reports) agree. Nothing is
+  # built or pushed until this is green.
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: stratorama_agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: stratorama_agent/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - run: npm run typecheck
+
+      - run: npm test
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # armv7 dropped — QEMU emulation of `npm install` on GHA free runners
+        # armv7 dropped - QEMU emulation of `npm install` on GHA free runners
         # consistently exceeds the 6h job timeout. Re-add if/when a faster
         # runner (real ARM, or self-hosted) is available.
         arch: [aarch64, amd64]

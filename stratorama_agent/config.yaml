@@ -1,5 +1,5 @@
 name: "Stratorama - Agent"
-version: "1.0.0"
+version: "1.1.0"
 slug: "stratorama_agent"
 description: "Connects your Home Assistant to Stratorama through one outbound, encrypted connection - no open port, no exposed instance."
 url: "https://github.com/stratorama/stratorama-addon"

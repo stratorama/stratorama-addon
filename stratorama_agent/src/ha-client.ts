@@ -2,18 +2,20 @@ import WebSocket from 'ws';
 import { log } from './log.js';
 
 /**
- * Communicates with the local Home Assistant instance via the
- * supervisor proxy. Two channels:
- *  - REST  → for proxied requests from the tunnel (states, services, …)
- *  - WS    → to subscribe to `state_changed` and forward events upstream
+ * Communicates with the local Home Assistant instance via the supervisor proxy. Two
+ * channels:
+ *  - REST: for the calls the relay forwards (the entity snapshot, service calls)
+ *  - WS:   to subscribe to `state_changed` and push the events upstream
  *
- * URLs assume `homeassistant_api: true` in config.yaml, which makes
- * `http://supervisor/core` (and ws variant) reachable from inside the add-on.
- * Auth uses SUPERVISOR_TOKEN, auto-injected by HA.
+ * The defaults assume `homeassistant_api: true` in config.yaml, which makes
+ * `http://supervisor/core` (and its ws variant) reachable from inside the add-on and
+ * injects SUPERVISOR_TOKEN. Outside Home Assistant (development on a laptop), point
+ * HA_HTTP_URL and HA_WS_URL at any instance and SUPERVISOR_TOKEN at a long-lived access
+ * token from its profile page.
  */
 
-const HA_HTTP = 'http://supervisor/core';
-const HA_WS = 'ws://supervisor/core/api/websocket';
+const HA_HTTP = process.env.HA_HTTP_URL ?? 'http://supervisor/core';
+const HA_WS = process.env.HA_WS_URL ?? 'ws://supervisor/core/api/websocket';
 
 const SUPERVISOR_TOKEN = process.env.SUPERVISOR_TOKEN;
 
@@ -30,7 +32,7 @@ export interface HaRestResult {
   body: unknown;
 }
 
-/** Forward a request from the tunnel to local HA over HTTP. */
+/** Forward a request from the relay to local HA over HTTP. Never rejects. */
 export async function callHaRest(
   method: 'GET' | 'POST',
   path: string,
@@ -45,7 +47,7 @@ export async function callHaRest(
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-    // HA may return a non-JSON empty body on success — guard against parse error.
+    // HA may return a non-JSON empty body on success - guard against a parse error.
     const text = await res.text();
     let parsed: unknown = text;
     if (text) {
@@ -66,11 +68,10 @@ export type StateChangedHandler = (data: {
 }) => void;
 
 /**
- * Maintains a long-lived WS connection to HA, authenticates, and subscribes
- * to `state_changed`. Reconnects automatically with exponential backoff.
+ * Maintains a long-lived WS connection to HA, authenticates, and subscribes to
+ * `state_changed`. Reconnects automatically with exponential backoff.
  *
- * The `onEvent` callback fires for each state change — wire it to forward
- * to the tunnel.
+ * The `onEvent` callback fires for each state change - wire it to forward to the relay.
  */
 export class HaWsSubscriber {
   #ws: WebSocket | null = null;
@@ -105,6 +106,16 @@ export class HaWsSubscriber {
   }
 
   #handleMessage(ws: WebSocket, raw: string): void {
+    // A throw inside an event listener is an uncaught exception, and an uncaught
+    // exception ends the process. Nothing Home Assistant sends may do that.
+    try {
+      this.#dispatch(ws, raw);
+    } catch (e) {
+      log.warn(`Failed to handle a Home Assistant message: ${(e as Error).message}`);
+    }
+  }
+
+  #dispatch(ws: WebSocket, raw: string): void {
     let msg: { type: string; [k: string]: unknown };
     try {
       msg = JSON.parse(raw);
@@ -131,7 +142,7 @@ export class HaWsSubscriber {
     }
 
     if (msg.type === 'auth_invalid') {
-      log.error('HA WS auth invalid — check SUPERVISOR_TOKEN');
+      log.error('HA WS auth invalid - check SUPERVISOR_TOKEN');
       ws.close();
       return;
     }

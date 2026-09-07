@@ -33,7 +33,7 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
 - Through that connection, Stratorama's server asks Home Assistant for the **state of your
   entities** (`GET /api/states`) and sends **service calls for the devices you placed on
   your plan**: lights, switches and covers - turn on, turn off, set brightness and colour,
-  open, close, stop, set position.
+  open, close, stop, set position. The add-on itself refuses any other call, whoever asks.
 - It also forwards every **state change** Home Assistant emits. State changes travel through
   Stratorama's server **in memory only**: they are never written to disk there, and each
   browser or wall panel is only sent the entities that are actually bound to its plan.
@@ -52,16 +52,25 @@ reconnect until it is paired again with a fresh code. Uninstalling the add-on re
 
 ## Troubleshooting
 
-Open the add-on's **Log** tab.
+Open the add-on's **Log** tab. When the add-on stops on purpose (the first three items),
+Home Assistant shows it as stopped with an error: nothing will change until the
+configuration does, so it does not keep knocking on the relay every minute.
 
-- **"Code invalide" / "Code expiré" / "Code déjà utilisé"** - the pairing code is wrong,
-  older than 10 minutes, or was already used. Generate a new one in Stratorama, paste it,
-  save, restart the add-on.
-- **"Token agent invalide"** - the credential was revoked (somebody pressed Disconnect, or
-  paired another Home Assistant to the same home). Pair again with a fresh code.
-- **The add-on says Running but Stratorama says Not connected** - read the Log tab first.
-  A `Tunnel WS error` line means the add-on cannot reach `stratorama.app` on port 443:
-  check your firewall or DNS. The add-on retries on its own, up to once a minute.
+- **"Pairing refused: ..."** - the pairing code is unknown, already used, or older than 10
+  minutes. Generate a new one in Stratorama (Settings > Home Assistant > Connection), paste
+  it into Pairing code, save, then start the add-on.
+- **"The relay no longer accepts this add-on's credential"** - somebody pressed Disconnect
+  in Stratorama, or paired another Home Assistant to the same home. Same fix; if a fresh
+  code is already in the configuration, the add-on tries it by itself.
+- **"No stored credential and no pairing code in the configuration"** - first start
+  without a code. Same fix.
+- **The add-on says Running but Stratorama says Not connected** - a repeating
+  `Relay WS error` line means the add-on cannot reach `stratorama.app` on port 443: check
+  your firewall or DNS. The add-on retries on its own, up to once a minute.
+- **"No frame from the relay for 90 s"** - the network dropped the connection silently;
+  the add-on reconnects by itself. Only worth a look if it repeats every few minutes.
+- **"Refusing ha:request ... not one of the calls this add-on relays"** - Stratorama asked
+  for something this version does not relay: update the add-on.
 - **"This add-on is not compatible with your system"** in the store - your machine is
   32-bit (armv7) or i386, which the images do not cover.
 - **Installation fails while downloading the image** - a transient registry problem;
