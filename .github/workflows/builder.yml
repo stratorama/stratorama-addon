@@ -12,9 +12,13 @@ name: Builder
 on:
   push:
     branches: [main]
+    # Text the Supervisor reads from the repository itself, never from the image: a change
+    # there must not rebuild and re-push the version tag.
     paths-ignore:
       - '**/README.md'
       - '**/CHANGELOG.md'
+      - '**/DOCS.md'
+      - '**/translations/**'
   pull_request:
   workflow_dispatch:
 

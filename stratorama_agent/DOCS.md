@@ -17,10 +17,12 @@ from anywhere without exposing Home Assistant to the internet.
    Connection**, and press **Generate pairing code**. You get an 8-character code, valid for
    10 minutes.
 2. In this add-on's **Configuration** tab, paste the code into **Pairing code** and press
-   **Save**. Leave **Tunnel URL** at its default.
-3. **Start** the add-on. Within a few seconds the Connection panel in Stratorama shows
-   **Connected**, and the small Home Assistant mark in the top-right corner of the plan turns
-   green.
+   **Save**. Leave **Tunnel URL** at its default. Home Assistant confirms the save with nothing
+   more than a brief toast at the bottom of the screen (or asks to restart, if the add-on is
+   already running): no message is normal, the code is saved.
+3. Back on the **Info** tab, **Start** the add-on. Within a few seconds the Connection panel in
+   Stratorama shows **Connected**, and the small Home Assistant mark in the top-right corner of
+   the plan turns green.
 
 That is all. The add-on now holds its own long-lived credential (stored in its `/data`
 folder), so restarts and Home Assistant updates reconnect on their own. You can clear the

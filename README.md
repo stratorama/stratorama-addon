@@ -46,10 +46,12 @@ pulled, nothing is compiled on your machine).
 1. In Stratorama, open the settings menu (the gear, top right), then **Home Assistant >
    Connection**, and press **Generate pairing code**. The code is 8 characters and valid for
    10 minutes.
-2. In the add-on's **Configuration** tab, paste it into **Pairing code**, press **Save**.
-   Leave **Tunnel URL** at its default.
-3. **Start** the add-on. Within seconds the Connection panel shows **Connected** and the small
-   Home Assistant mark in the top-right corner of your plan turns green.
+2. In the add-on's **Configuration** tab, paste it into **Pairing code** and press **Save**.
+   Leave **Tunnel URL** at its default. Home Assistant confirms the save with nothing more than a
+   brief toast at the bottom of the screen (or asks to restart, if the add-on is already running):
+   no message is normal, the code is saved.
+3. Back on the **Info** tab, **Start** the add-on. Within seconds the Connection panel shows
+   **Connected** and the small Home Assistant mark in the top-right corner of your plan turns green.
 
 The add-on now holds its own long-lived credential in its `/data` folder: restarts and
 Home Assistant updates reconnect on their own, and you can clear the **Pairing code** field.
