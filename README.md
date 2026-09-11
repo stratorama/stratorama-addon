@@ -43,7 +43,7 @@ pulled, nothing is compiled on your machine).
 
 ### 3. Pair it with your Stratorama home
 
-1. In Stratorama, open the settings menu (the gear, top right), then **Home Assistant >
+1. In Stratorama, open the settings menu (the three-dot menu, top right), then **Home Assistant >
    Connection**, and press **Generate pairing code**. The code is 8 characters and valid for
    10 minutes.
 2. In the add-on's **Configuration** tab, paste it into **Pairing code** and press **Save**.

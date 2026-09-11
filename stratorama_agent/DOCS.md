@@ -13,7 +13,7 @@ from anywhere without exposing Home Assistant to the internet.
 
 ## Setup
 
-1. In Stratorama, open the settings menu (the gear, top right), then **Home Assistant >
+1. In Stratorama, open the settings menu (the three-dot menu, top right), then **Home Assistant >
    Connection**, and press **Generate pairing code**. You get an 8-character code, valid for
    10 minutes.
 2. In this add-on's **Configuration** tab, paste the code into **Pairing code** and press
