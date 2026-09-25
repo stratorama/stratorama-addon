@@ -1,13 +1,13 @@
-# Stratorama - Agent (Home Assistant add-on)
+# Stratorama - Agent (Home Assistant app)
 
-The small add-on that links your Home Assistant to your [Stratorama](https://stratorama.app)
-account: your home on a floor plan, live and controllable from anywhere, without exposing
-Home Assistant to the internet. It opens **one outbound connection** to Stratorama's relay
-and nothing else - no port forwarding, no public URL, no long-lived token handed to a
-browser.
+The small Home Assistant app (formerly called an add-on) that links your Home Assistant to
+your [Stratorama](https://stratorama.app) account: your home on a floor plan, live and
+controllable from anywhere, without exposing Home Assistant to the internet. It opens
+**one outbound connection** to Stratorama's relay and nothing else - no port forwarding,
+no public URL, no long-lived token handed to a browser.
 
 ```
-[Stratorama in your browser]  --HTTPS-->  [stratorama.app relay]  <--WebSocket out--  [this add-on]
+[Stratorama in your browser]  --HTTPS-->  [stratorama.app relay]  <--WebSocket out--   [this app]
                                                                                             |
                                                                                             v  http://supervisor/core
                                                                                     [Home Assistant]
@@ -27,12 +27,13 @@ Open source, MIT licence. Images for **amd64** and **aarch64**.
 
 ## Install
 
-### 1. Add this repository to your add-on store
+### 1. Add this repository to your Home Assistant app store
 
-[![Open your Home Assistant instance and show the dialog to add a repository to the add-on store.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fstratorama%2Fstratorama-addon)
+[![Open your Home Assistant instance and show the add app repository dialog with this repository pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fstratorama%2Fstratorama-addon)
 
 The button pre-fills the dialog in your own Home Assistant. Manual path: **Settings >
-Add-ons > Add-on Store**, the three-dot menu top right, **Repositories**, then add:
+Apps > Install app**, the three-dot menu top right, **Repositories**, then add (before
+Home Assistant 2026.2: **Settings > Add-ons > Add-on Store**, same menu):
 
 ```
 https://github.com/stratorama/stratorama-addon
@@ -40,7 +41,7 @@ https://github.com/stratorama/stratorama-addon
 
 ### 2. Install "Stratorama - Agent"
 
-It appears in the store under **Stratorama Add-ons**. Press **Install** (the image is
+It appears in the store under **Stratorama**. Press **Install** (the image is
 pulled, nothing is compiled on your machine).
 
 ### 3. Pair it with your Stratorama home
@@ -48,14 +49,14 @@ pulled, nothing is compiled on your machine).
 1. In Stratorama, open the settings menu (the three-dot menu, top right), then **Home Assistant >
    Connection**, and press **Generate pairing code**. The code is 8 characters and valid for
    10 minutes.
-2. In the add-on's **Configuration** tab, paste it into **Pairing code** and press **Save**.
+2. In the app's **Configuration** tab, paste it into **Pairing code** and press **Save**.
    Leave **Tunnel URL** at its default. Home Assistant confirms the save with nothing more than a
-   brief toast at the bottom of the screen (or asks to restart, if the add-on is already running):
+   brief toast at the bottom of the screen (or asks to restart, if the app is already running):
    no message is normal, the code is saved.
-3. Back on the **Info** tab, **Start** the add-on. Within seconds the Connection panel shows
+3. Back on the **Info** tab, **Start** the app. Within seconds the Connection panel shows
    **Connected** and the small Home Assistant mark in the top-right corner of your plan turns green.
 
-The add-on now holds its own long-lived credential in its `/data` folder: restarts and
+The app now holds its own long-lived credential in its `/data` folder: restarts and
 Home Assistant updates reconnect on their own, and you can clear the **Pairing code** field.
 
 ### 4. Put your devices on the plan
@@ -184,22 +185,22 @@ compose file changed, whereas `docker restart` would start it with the old value
 The image runs as an unprivileged user (uid 1000), opens no port, and writes nothing to your
 host but its own volume. It is built from [`stratorama_agent/Dockerfile.standalone`](stratorama_agent/Dockerfile.standalone).
 
-## What the add-on does, and what leaves your home
+## What the app does, and what leaves your home
 
 | Direction | What | How much |
 |---|---|---|
-| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The add-on itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
+| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
 | Home Assistant -> relay | every `state_changed` event | continuous |
 
 State changes cross the relay **in memory only**: nothing is written to disk there, and each
-browser or wall panel is only sent the entities bound to its plan. The add-on never reads
+browser or wall panel is only sent the entities bound to its plan. The app never reads
 your history or logbook, never touches automations, and never sends Home Assistant
-credentials anywhere: the Supervisor hands it a local token that stays inside the add-on.
+credentials anywhere: the Supervisor hands it a local token that stays inside the app.
 The complete statement is Stratorama's privacy policy: https://stratorama.app/privacy.
 
 ## Permissions
 
-The add-on declares `homeassistant_api: true`, and nothing else. That gives it:
+The app declares `homeassistant_api: true`, and nothing else. That gives it:
 
 - `http://supervisor/core/api/...` (REST) and `ws://supervisor/core/api/websocket` (state
   events) on your own Home Assistant,
@@ -211,9 +212,9 @@ ingress. It makes **outbound** connections only and opens no port.
 
 ## Disconnecting and revoking
 
-In Stratorama, **Settings > Home Assistant > Connection > Disconnect add-on** revokes the
-add-on's credential at once: the connection drops within a second and the add-on cannot
-reconnect until it is paired again with a fresh code. Uninstalling the add-on deletes its
+In Stratorama, **Settings > Home Assistant > Connection > Disconnect Home Assistant** revokes
+the app's credential at once: the connection drops within a second and the app cannot
+reconnect until it is paired again with a fresh code. Uninstalling the app deletes its
 `/data` folder, credential included. Pairing a second Home Assistant to the same home
 replaces the first one's credential.
 
@@ -226,7 +227,7 @@ replaces the first one's credential.
 
 ## Troubleshooting
 
-Everything the add-on has to say is in its **Log** tab. When it stops on purpose (the first
+Everything the app has to say is in its **Log** tab. When it stops on purpose (the first
 five rows), Home Assistant shows it as stopped with an error: nothing will change until the
 configuration does, so it does not keep knocking on the relay every minute.
 
@@ -235,14 +236,14 @@ configuration does, so it does not keep knocking on the relay every minute.
 | `Pairing refused: the relay does not know this pairing code` | mistyped, or refused after too many attempts | generate a new code in Stratorama, paste it into **Pairing code**, save, start |
 | `Pairing refused: this pairing code has already been used` | a code works once | same |
 | `Pairing refused: this pairing code has expired` | a code is valid for 10 minutes | same |
-| `The relay no longer accepts this add-on's credential` | Disconnect was pressed in Stratorama, or another Home Assistant was paired to the home | same; if a fresh code is already in the configuration, the add-on tries it by itself |
+| `The relay no longer accepts this agent's credential` | Disconnect Home Assistant was pressed in Stratorama, or another Home Assistant was paired to the home | same; if a fresh code is already in the configuration, the app tries it by itself |
 | `No stored credential and no pairing code in the configuration` | first start without a code | same |
-| `Relay WS error` repeating, add-on Running, Stratorama Not connected | the add-on cannot reach `stratorama.app` on port 443 | check your firewall and DNS; the add-on retries on its own, up to once a minute |
-| `No frame from the relay for 90 s` | the network dropped the connection silently (NAT, ISP); the add-on reconnects by itself | nothing, unless it repeats every few minutes: then look at the network |
+| `Relay WS error` repeating, app Running, Stratorama Not connected | the app cannot reach `stratorama.app` on port 443 | check your firewall and DNS; the app retries on its own, up to once a minute |
+| `No frame from the relay for 90 s` | the network dropped the connection silently (NAT, ISP); the app reconnects by itself | nothing, unless it repeats every few minutes: then look at the network |
 | `refusing it for now`, `reconnecting in 5 min` | this address failed too many pairings in 15 minutes | wait, then check the pairing code |
-| `Refusing ha:request`, `not one of the calls this add-on relays` | Stratorama asked for something this version does not relay | update the add-on |
-| `HA WS auth invalid` | the Supervisor token is not reaching the add-on | only possible on a fork that dropped `homeassistant_api: true` |
-| Store says "not compatible with your system" | 32-bit (armv7) or i386 machine | not supported |
+| `Refusing ha:request`, `not one of the calls this agent relays` | Stratorama asked for something this version does not relay | update the app |
+| `Home Assistant rejected the Supervisor token` | the Supervisor token is not reaching the app | only possible on a fork that dropped `homeassistant_api: true` |
+| The store shows the app as "Not available" | 32-bit (armv7) or i386 machine | not supported |
 | Install fails while pulling the image | registry hiccup | retry in a minute, then open an issue |
 
 ## Support
@@ -252,8 +253,8 @@ configuration does, so it does not keep knocking on the relay every minute.
 
 ## Development
 
-The add-on lives in `./stratorama_agent/` (the Supervisor scans sub-folders for a
-`config.yaml`); `repository.yaml` at the root marks this repository as an add-on store.
+The app lives in `./stratorama_agent/` (the Supervisor scans sub-folders for a
+`config.yaml`); `repository.yaml` at the root marks this repository as an app repository.
 
 ```bash
 cd stratorama_agent

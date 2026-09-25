@@ -4,10 +4,10 @@ configuration:
     description: >-
       The 8-character code shown by Stratorama under Settings > Home Assistant > Connection >
       "Generate pairing code". It is valid for 10 minutes and used once. Press Save (Home
-      Assistant only shows a brief toast), then start the add-on from the Info tab. After the
-      first successful start the add-on keeps its own credential, and you can clear this field.
+      Assistant only shows a brief toast), then start the app from the Info tab. After the
+      first successful start the app keeps its own credential, and you can clear this field.
   tunnel_url:
     name: Tunnel URL
     description: >-
-      Where the add-on connects (outbound only). Keep the default unless you run your own
+      Where the app connects (outbound only). Keep the default unless you run your own
       Stratorama tunnel server.
