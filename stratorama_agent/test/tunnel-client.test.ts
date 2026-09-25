@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { after, beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WebSocketServer, type WebSocket } from 'ws';
+import { haRestCaller } from '../src/ha-client.js';
 
 /**
  * The client against a real WebSocket server speaking the relay's protocol, and a real
@@ -13,11 +14,10 @@ import { WebSocketServer, type WebSocket } from 'ws';
  * these specs pin is what a relay sees on the wire.
  */
 
-// ha-client.js reads these at import time, so they are set before the dynamic import.
+// token-store.js reads this at import time, so it is set before the dynamic import.
 const dataDir = mkdtempSync(join(tmpdir(), 'stratorama-agent-test-'));
 const tokenFile = join(dataDir, 'agent-token.json');
 process.env.AGENT_DATA_DIR = dataDir;
-process.env.SUPERVISOR_TOKEN = 'test-supervisor-token';
 
 const haCalls: { method: string; url: string; auth: string | undefined; body: string }[] = [];
 const fakeHa = createServer((req, res) => {
@@ -30,7 +30,10 @@ const fakeHa = createServer((req, res) => {
   });
 });
 await new Promise<void>((resolve) => fakeHa.listen(0, '127.0.0.1', resolve));
-process.env.HA_HTTP_URL = `http://127.0.0.1:${(fakeHa.address() as AddressInfo).port}`;
+const callHa = haRestCaller({
+  httpUrl: `http://127.0.0.1:${(fakeHa.address() as AddressInfo).port}`,
+  token: 'test-supervisor-token',
+});
 
 const { TunnelClient } = await import('../src/tunnel-client.js');
 type Options = ConstructorParameters<typeof TunnelClient>[0];
@@ -83,14 +86,18 @@ async function until(cond: () => boolean, what: string, timeoutMs = 5_000): Prom
 
 function makeClient(relay: Relay, overrides: Partial<Options> = {}) {
   const gaveUp: string[] = [];
+  const readiness: boolean[] = [];
   const client = new TunnelClient({
     tunnelUrl: relay.url,
     pairingCode: 'ABCD2345',
     version: '9.9.9-test',
+    runtime: 'addon',
+    callHa,
     onGiveUp: (why) => gaveUp.push(why),
+    onReadyChange: (ready) => readiness.push(ready),
     ...overrides,
   });
-  return { client, gaveUp };
+  return { client, gaveUp, readiness };
 }
 
 beforeEach(() => {
@@ -114,6 +121,7 @@ test('pairs with its version, stores the credential, relays the allowed calls an
       mode: 'pair',
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
+      agentRuntime: 'addon',
     });
 
     const socket = relay.sockets[0]!;
@@ -128,7 +136,7 @@ test('pairs with its version, stores the credential, relays the allowed calls an
       type: 'ha:response',
       requestId: 'r1',
       status: 403,
-      body: { error: 'call not relayed by this add-on' },
+      body: { error: 'call not relayed by this agent' },
     });
     assert.equal(haCalls.length, 0);
 
@@ -222,6 +230,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       mode: 'reconnect',
       agentToken: 'stale-token',
       agentVersion: '9.9.9-test',
+      agentRuntime: 'addon',
     });
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'invalid_token', message: 'Token agent invalide' });
 
@@ -231,6 +240,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       mode: 'pair',
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
+      agentRuntime: 'addon',
     });
     assert.equal(existsSync(tokenFile), false);
     assert.deepEqual(gaveUp, []);
@@ -254,7 +264,7 @@ test('a revoked credential with no code to fall back on gives up', async () => {
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'invalid_token', message: 'Token agent invalide' });
 
     await until(() => gaveUp.length === 1, 'the give-up');
-    assert.match(gaveUp[0]!, /no longer accepts this add-on's credential/);
+    assert.match(gaveUp[0]!, /no longer accepts this agent's credential/);
     assert.equal(existsSync(tokenFile), false);
     await sleep(1_500);
     assert.equal(relay.sockets.length, 1);
@@ -338,5 +348,86 @@ test('close code 4029 is respected: the next attempt waits the blocked delay, no
   } finally {
     client.stop();
     await relay.close();
+  }
+});
+
+test('the Docker image says so in its hello, and words a refusal for a container', async () => {
+  const relay = await startRelay();
+  const { client, gaveUp } = makeClient(relay, { runtime: 'docker' });
+  try {
+    client.start();
+    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+    assert.deepEqual(relay.inbox[0]![0], {
+      type: 'agent:hello',
+      mode: 'pair',
+      pairingCode: 'ABCD2345',
+      agentVersion: '9.9.9-test',
+      agentRuntime: 'docker',
+    });
+    send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'code_used', message: 'Pairing code already used' });
+
+    await until(() => gaveUp.length === 1, 'the give-up');
+    assert.match(gaveUp[0]!, /set it as PAIRING_CODE/);
+    assert.match(gaveUp[0]!, /recreate the container \(docker compose up -d\)/);
+    assert.doesNotMatch(gaveUp[0]!, /add-on/);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('a Docker agent with neither credential nor code names PAIRING_CODE', async () => {
+  const relay = await startRelay();
+  const { client, gaveUp } = makeClient(relay, { runtime: 'docker', pairingCode: null });
+  try {
+    client.start();
+    await until(() => gaveUp.length === 1, 'the give-up');
+    assert.match(gaveUp[0]!, /no PAIRING_CODE in the environment/);
+    assert.deepEqual(relay.inbox[0] ?? [], []);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('readiness follows the registration: true on hello-ok, false when the socket drops', async () => {
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+    assert.deepEqual(readiness, []);
+
+    send(relay.sockets[0]!, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    await until(() => readiness.length === 1, 'ready');
+    relay.sockets[0]!.terminate();
+    await until(() => readiness.length === 2, 'not ready');
+    assert.deepEqual(readiness, [true, false]);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('a credential that cannot be stored is reported, and the connection still carries events', async () => {
+  // A directory where the credential file should be: every write fails, on every platform.
+  mkdirSync(tokenFile);
+  const relay = await startRelay();
+  const { client, readiness, gaveUp } = makeClient(relay);
+  try {
+    client.start();
+    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+    assert.equal(relay.inbox[0]![0]!['mode'], 'pair');
+    send(relay.sockets[0]!, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    await until(() => readiness.length === 1, 'ready');
+
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: { state: 'on' }, old_state: null });
+    await until(() => relay.inbox[0]!.length >= 2, 'the event');
+    assert.equal(relay.inbox[0]![1]!['type'], 'ha:event');
+    assert.deepEqual(gaveUp, []);
+  } finally {
+    client.stop();
+    await relay.close();
+    rmSync(tokenFile, { recursive: true, force: true });
   }
 });

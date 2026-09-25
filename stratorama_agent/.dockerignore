@@ -1,0 +1,7 @@
+# Build context of both images (the add-on's Dockerfile and Dockerfile.standalone):
+# each copies package*.json, tsconfig.json and src/ explicitly, so none of this is
+# needed - and a local node_modules is hundreds of megabytes sent to the daemon for nothing.
+node_modules/
+dist/
+dist-test/
+*.log

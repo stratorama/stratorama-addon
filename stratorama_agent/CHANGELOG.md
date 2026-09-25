@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0 - Also runs without Home Assistant OS
+
+- New: the same agent as a standalone Docker image, `ghcr.io/stratorama/stratorama-agent`
+  (amd64 and arm64), for Home Assistant Container, which cannot run apps. It is configured
+  with `HA_URL`, `HA_TOKEN` (a long-lived access token, from a non-admin user if you like)
+  and `PAIRING_CODE`: see the README. It runs as an unprivileged user and reports `healthy`
+  or `unhealthy` to Docker. On a refusal no retry can fix, it stays up without connecting
+  instead of exiting, so that Docker's restart policy never presents a refused code or token
+  again every minute.
+- For the Home Assistant app, nothing changes in what it does. Its log lines now say "app" or
+  "agent" (Home Assistant renamed add-ons to apps in 2026.2), and every hello tells the relay
+  whether it comes from the app or from the Docker image, next to the version.
+- A token Home Assistant rejects is no longer retried every 30 seconds, since each retry was
+  a failed login in Home Assistant's eyes: the agent stops and says what to do.
+- A credential that cannot be saved is reported in the log, and no longer stops the events of
+  the connection that just received it.
+
 ## 1.1.0 - Notices, refuses, stops, and says its version
 
 - A dead connection is noticed. The relay pings every 30 seconds; a socket that has

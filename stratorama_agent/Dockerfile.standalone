@@ -1,0 +1,52 @@
+# The agent as a plain container, for Home Assistant Container (which has no Supervisor
+# and so cannot run add-ons). Same source as the add-on; only the packaging differs:
+#
+#   - configured by environment variables (HA_URL, HA_TOKEN, PAIRING_CODE), not bashio;
+#   - AGENT_RUNTIME=docker makes the agent word its instructions for a container and stay
+#     up, idle, on a refusal no retry can fix (see src/index.ts), instead of exiting into
+#     Docker's restart loop;
+#   - runs as the unprivileged `node` user, with a HEALTHCHECK `docker ps` can show.
+#
+# Built for linux/amd64 and linux/arm64 from one amd64 runner: everything that executes
+# runs in the builder stage on the BUILD platform (TypeScript compiles to plain JS and the
+# only runtime dependency, ws, is pure JS), so the target stage is COPY and metadata only
+# and needs no emulation - the thing that made armv7 add-on builds time out.
+#
+#   docker build -f Dockerfile.standalone -t stratorama-agent:dev .
+
+# ---------- Stage 1 : compile TypeScript, keep the production dependencies ----------
+FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
+
+WORKDIR /build
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci --no-audit --no-fund --include=dev
+
+COPY src ./src
+RUN npx tsc -p tsconfig.json \
+ && npm prune --omit=dev --no-audit --no-fund \
+ && mkdir -p /out/data
+
+# ---------- Stage 2 : runtime ----------
+FROM node:22-alpine
+
+ENV NODE_ENV=production \
+    AGENT_RUNTIME=docker \
+    AGENT_DATA_DIR=/data
+
+WORKDIR /app
+COPY --from=builder /build/package.json ./package.json
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/dist ./dist
+# The credential lives here. Owned by `node` so a NAMED volume, which Docker seeds from
+# the image, is writable on first use; a bind-mounted host folder must be made writable
+# by uid 1000 (README).
+COPY --from=builder --chown=node:node /out/data /data
+
+USER node
+VOLUME ["/data"]
+
+# Healthy = registered with the relay AND subscribed to Home Assistant (src/health.ts).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD ["/bin/sh", "-c", "grep -qx ok /tmp/stratorama-agent.health"]
+
+CMD ["node", "dist/index.js"]

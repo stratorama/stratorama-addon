@@ -1,9 +1,10 @@
 import WebSocket from 'ws';
+import type { AgentRuntime } from './config.js';
 import { log } from './log.js';
-import { callHaRest } from './ha-client.js';
-import { loadToken, saveToken, clearToken } from './token-store.js';
+import type { HaRestCall } from './ha-client.js';
+import { loadToken, saveToken, clearToken, TOKEN_FILE } from './token-store.js';
 import { isAllowedHaCall } from './ha-allowlist.js';
-import { reactToHelloError } from './hello-errors.js';
+import { noCredentialLine, reactToHelloError } from './hello-errors.js';
 import { LIVENESS_CHECK_MS, RELAY_SILENCE_MS, RelayLiveness } from './liveness.js';
 import type { AgentToServerMsg, ServerToAgentMsg } from './types.js';
 
@@ -25,12 +26,18 @@ import type { AgentToServerMsg, ServerToAgentMsg } from './types.js';
 
 export interface TunnelClientOptions {
   tunnelUrl: string;
-  /** Pairing code from the add-on configuration; presented only when no credential is stored. */
+  /** Pairing code from the configuration; presented only when no credential is stored. */
   pairingCode: string | null;
-  /** This add-on's version, sent in every hello. */
+  /** This agent's version, sent in every hello. */
   version: string;
+  /** How the agent runs, sent in every hello and used to word what the owner must do. */
+  runtime: AgentRuntime;
+  /** Answers an allowed `ha:request` from Home Assistant (ha-client.ts `haRestCaller`). */
+  callHa: HaRestCall;
   /** Called once, after the client has stopped, with the line already written to the log. */
   onGiveUp: (reason: string) => void;
+  /** True once registered with the relay, false whenever that registration is lost. */
+  onReadyChange?: (ready: boolean) => void;
   /** Test seams; the defaults are the production values. */
   relaySilenceMs?: number;
   livenessCheckMs?: number;
@@ -72,7 +79,7 @@ export class TunnelClient {
     this.#clearTimers();
     const ws = this.#ws;
     this.#ws = null;
-    this.#ready = false;
+    this.#setReady(false);
     ws?.close();
   }
 
@@ -95,7 +102,7 @@ export class TunnelClient {
     log.info(`Connecting to the relay at ${url}`);
     const ws = new WebSocket(url);
     this.#ws = ws;
-    this.#ready = false;
+    this.#setReady(false);
 
     // Every listener checks `this.#ws === ws` first: a socket that was replaced
     // (terminated for silence, then reopened) still emits 'close' and 'error' afterwards,
@@ -135,21 +142,18 @@ export class TunnelClient {
     const stored = await loadToken();
     if (this.#ws !== ws) return;
     const agentVersion = this.#opts.version;
+    const agentRuntime = this.#opts.runtime;
     if (stored) {
       log.info('Reconnecting with the stored credential');
-      this.#send({ type: 'agent:hello', mode: 'reconnect', agentToken: stored, agentVersion });
+      this.#send({ type: 'agent:hello', mode: 'reconnect', agentToken: stored, agentVersion, agentRuntime });
       return;
     }
     if (this.#opts.pairingCode) {
       log.info('Pairing with the code from the configuration');
-      this.#send({ type: 'agent:hello', mode: 'pair', pairingCode: this.#opts.pairingCode, agentVersion });
+      this.#send({ type: 'agent:hello', mode: 'pair', pairingCode: this.#opts.pairingCode, agentVersion, agentRuntime });
       return;
     }
-    this.#giveUp(
-      'No stored credential and no pairing code in the configuration. Generate a pairing code in ' +
-        'Stratorama (Settings > Home Assistant > Connection > Generate pairing code), paste it into ' +
-        "the add-on's Pairing code option, save, then start the add-on again.",
-    );
+    this.#giveUp(noCredentialLine(agentRuntime));
   }
 
   async #handleMessage(ws: WebSocket, raw: string): Promise<void> {
@@ -172,14 +176,28 @@ export class TunnelClient {
         return;
       }
       log.info('Registered with the relay');
-      await saveToken(msg.agentToken);
-      this.#ready = true;
+      this.#setReady(true);
       this.#attempt = 0;
+      // A credential that cannot be written still makes THIS connection work, so it is
+      // reported rather than thrown: failing the registration would also stop the events,
+      // for a problem that only bites at the next start. Reachable in the Docker image,
+      // where /data is whatever the owner mounted; never under Home Assistant OS.
+      try {
+        await saveToken(msg.agentToken);
+      } catch (e) {
+        log.error(
+          `Could not store the credential in ${TOKEN_FILE}: ${(e as Error).message}. This connection works, ` +
+            'but the next start will need a new pairing code: make that folder writable by the agent.',
+        );
+      }
       return;
     }
 
     if (msg.type === 'agent:hello-error') {
-      const reaction = reactToHelloError(msg, { pairingCodeConfigured: this.#opts.pairingCode !== null });
+      const reaction = reactToHelloError(msg, {
+        pairingCodeConfigured: this.#opts.pairingCode !== null,
+        runtime: this.#opts.runtime,
+      });
       if (reaction.forgetCredential) await clearToken();
       if (reaction.terminal) {
         this.#giveUp(reaction.line);
@@ -201,17 +219,17 @@ export class TunnelClient {
       if (!isAllowedHaCall(msg.method, msg.path)) {
         log.warn(
           `Refusing ha:request ${String(msg.method)} ${String(msg.path)}: not one of the calls ` +
-            'this add-on relays (a newer Stratorama may need a newer add-on)',
+            'this agent relays (a newer Stratorama may need a newer agent)',
         );
         this.#send({
           type: 'ha:response',
           requestId: msg.requestId,
           status: 403,
-          body: { error: 'call not relayed by this add-on' },
+          body: { error: 'call not relayed by this agent' },
         });
         return;
       }
-      const result = await callHaRest(msg.method, msg.path, msg.body);
+      const result = await this.#opts.callHa(msg.method, msg.path, msg.body);
       this.#send({ type: 'ha:response', requestId: msg.requestId, status: result.status, body: result.body });
       return;
     }
@@ -222,7 +240,7 @@ export class TunnelClient {
   #handleClose(ws: WebSocket, code: number, reason: string): void {
     if (this.#ws !== ws) return;
     this.#ws = null;
-    this.#ready = false;
+    this.#setReady(false);
     this.#clearLiveness();
     if (this.#closed) return;
 
@@ -252,6 +270,12 @@ export class TunnelClient {
     log.error(reason);
     this.stop();
     this.#opts.onGiveUp(reason);
+  }
+
+  #setReady(ready: boolean): void {
+    if (this.#ready === ready) return;
+    this.#ready = ready;
+    this.#opts.onReadyChange?.(ready);
   }
 
   #clearLiveness(): void {

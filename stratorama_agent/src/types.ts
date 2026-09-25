@@ -3,6 +3,8 @@
  * (One day this should be a shared package; for now it is duplicated by hand.)
  */
 
+import type { AgentRuntime } from './config.js';
+
 // Server -> Agent
 
 export interface ServerHelloOk {
@@ -46,6 +48,12 @@ export interface AgentHelloPair {
   pairingCode: string;
   /** This add-on's version (package.json), so the relay's journal can answer "which version?". */
   agentVersion: string;
+  /**
+   * How it runs: the add-on under Home Assistant OS, or the Docker image next to Home
+   * Assistant Container (config.ts). Journalled beside the version, so "how many Docker
+   * agents are there?" has an answer. A relay older than 1.2.0 strips it unread.
+   */
+  agentRuntime: AgentRuntime;
 }
 
 export interface AgentHelloReconnect {
@@ -53,6 +61,7 @@ export interface AgentHelloReconnect {
   mode: 'reconnect';
   agentToken: string;
   agentVersion: string;
+  agentRuntime: AgentRuntime;
 }
 
 export interface AgentHaResponse {

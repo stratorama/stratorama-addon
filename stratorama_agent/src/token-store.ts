@@ -3,12 +3,12 @@ import { join } from 'node:path';
 import { log } from './log.js';
 
 /**
- * HA add-ons get a `/data/` volume that survives upgrades/restarts.
- * We persist the long-lived agent token there so the agent can reconnect
- * after the pairing code is consumed.
+ * HA add-ons get a `/data/` volume that survives upgrades/restarts, and the Docker image
+ * declares one at the same path. We persist the long-lived agent token there so the agent
+ * can reconnect after the pairing code is consumed.
  */
 const DATA_DIR = process.env.AGENT_DATA_DIR ?? '/data';
-const TOKEN_FILE = join(DATA_DIR, 'agent-token.json');
+export const TOKEN_FILE = join(DATA_DIR, 'agent-token.json');
 
 interface TokenFile {
   agentToken: string;

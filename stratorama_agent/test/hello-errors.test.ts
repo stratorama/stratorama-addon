@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { reactToHelloError } from '../src/hello-errors.js';
+import { newCodeInstruction, noCredentialLine, reactToHelloError } from '../src/hello-errors.js';
 
-const withCode = { pairingCodeConfigured: true };
-const withoutCode = { pairingCodeConfigured: false };
+const withCode = { pairingCodeConfigured: true, runtime: 'addon' as const };
+const withoutCode = { pairingCodeConfigured: false, runtime: 'addon' as const };
 
 test('a refused pairing code is terminal and says to generate a new one', () => {
   for (const code of ['invalid_code', 'code_used', 'code_expired']) {
@@ -29,7 +29,7 @@ test('a revoked credential with no code to fall back on is forgotten, and termin
   assert.equal(reaction.terminal, true);
   assert.equal(reaction.forgetCredential, true);
   assert.equal(reaction.retryNow, false);
-  assert.match(reaction.line, /no longer accepts this add-on's credential/);
+  assert.match(reaction.line, /no longer accepts this agent's credential/);
   assert.match(reaction.line, /Generate a new pairing code in Stratorama/);
 });
 
@@ -57,4 +57,25 @@ test('an unknown code is treated like no code, and a missing message does not pr
   assert.equal(reaction.forgetCredential, false);
   assert.match(reaction.line, /no reason given/);
   assert.doesNotMatch(reaction.line, /undefined/);
+});
+
+test('the Docker wording says where the code goes in a container, and never says add-on', () => {
+  const docker = { pairingCodeConfigured: false, runtime: 'docker' as const };
+  for (const code of ['invalid_code', 'code_used', 'code_expired', 'invalid_token']) {
+    const line = reactToHelloError({ code, message: '' }, docker).line;
+    assert.match(line, /Generate a new pairing code in Stratorama/, code);
+    assert.match(line, /set it as PAIRING_CODE in the container's environment/, code);
+    assert.match(line, /recreate the container \(docker compose up -d\)/, code);
+    assert.doesNotMatch(line, /add-on/, code);
+  }
+  const revoked = reactToHelloError({ code: 'invalid_token', message: '' }, { ...docker, pairingCodeConfigured: true });
+  assert.match(revoked.line, /no longer accepts this agent's credential/);
+  assert.match(revoked.line, /trying the pairing code from PAIRING_CODE/);
+});
+
+test('the first-start line names the setting for each runtime', () => {
+  assert.match(noCredentialLine('addon'), /paste it into the app's Pairing code option/);
+  assert.match(noCredentialLine('docker'), /no PAIRING_CODE in the environment/);
+  assert.match(noCredentialLine('docker'), /docker compose up -d/);
+  assert.match(newCodeInstruction('addon'), /start the app again/);
 });
