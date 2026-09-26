@@ -62,9 +62,10 @@ Home Assistant updates reconnect on their own, and you can clear the **Pairing c
 ### 4. Put your devices on the plan
 
 In Stratorama's edit mode, tap a device on the plan (or the pen icon in the Elements list),
-then **Device**, and pick the Home Assistant entity. Supported today: lights and LED strips
-(`light.*`), roller shutters (`cover.*`), power outlets and electro-valves (`switch.*`), and
-read-only sensors (`sensor.*`).
+then **Device** (on a sensor, **Add reading**), and pick the Home Assistant entity. Supported
+today: lights and LED strips (`light.*`), roller shutters (`cover.*`), power outlets and
+electro-valves (`switch.*`), and read-only sensors (`sensor.*`, and `binary_sensor.*` such as a
+door, motion or leak sensor). What comes next is in [Using the plan](#using-the-plan).
 
 ## Home Assistant Container (Docker)
 
@@ -86,7 +87,8 @@ The app is handed a token by the Supervisor; a container has to be given one.
    Home Assistant shows it once.
 
 The token never leaves your network: the agent presents it to Home Assistant and to nothing
-else, and the relay never sees it.
+else, and the relay never sees it. The relay is not told `HA_URL` either: Stratorama never
+learns your Home Assistant's network address.
 
 ### 2. Generate a pairing code in Stratorama
 
@@ -123,7 +125,8 @@ Within seconds the log says `Registered with the relay` and the Connection panel
 Stratorama shows **Connected**; about 30 seconds later `docker ps` shows the container as
 `healthy`. The agent now keeps its own credential in the volume, so restarts, reboots and
 image updates reconnect on their own, and `PAIRING_CODE` is not read again unless you
-disconnect.
+disconnect. Then put your devices on the plan, as in
+[step 4 of the app install](#4-put-your-devices-on-the-plan).
 
 The same without Compose:
 
@@ -185,6 +188,73 @@ compose file changed, whereas `docker restart` would start it with the old value
 The image runs as an unprivileged user (uid 1000), opens no port, and writes nothing to your
 host but its own volume. It is built from [`stratorama_agent/Dockerfile.standalone`](stratorama_agent/Dockerfile.standalone).
 
+## Using the plan
+
+Once Home Assistant is connected, the rest happens in Stratorama, whichever way the agent runs.
+
+### Your devices, named once
+
+The settings menu > **Home Assistant > Devices** is your device library (in edit mode, the
+entity picker's **Manage devices** opens it too). Name each Home Assistant device and set a
+sensor's comfort range there once: placing an element on the plan then picks from this short
+list first, under **Your devices**, by the names you gave.
+
+- **Add device**, then pick the Home Assistant entity: the device is created under the entity's
+  Home Assistant name, and you can rename it right after. A humidity sensor, or a temperature
+  sensor in Celsius, arrives with a usual comfort range already filled in.
+- **Remove from library** only clears the custom name and the comfort range: elements already
+  on the plan keep working.
+
+### Comfort range
+
+A sensor's comfort range is a minimum and a maximum: outside it, that device's readings are
+tinted on the plan. It belongs to the device rather than to one element, so it applies wherever
+the device is shown, and setting it from the library or from a reading on the plan changes the
+same value.
+
+### Sensors and readings
+
+A **Sensor** placed on the plan shows only its name until it has a reading: in its
+configuration, **Add reading** and pick a Home Assistant `sensor.*` or `binary_sensor.*` entity
+(a door, motion or leak sensor, for instance), and its live value appears on the plan. One
+sensor can carry several readings, a temperature and a humidity for instance.
+
+### Doors and opening sensors
+
+Every door is drawn closed unless a sensor says otherwise. In the wall inspector (see below), a
+door's row offers **Link an opening sensor**: pick a Home Assistant `binary_sensor` (any one,
+its class does not have to be door), and the door is drawn open while it reads open.
+
+### Walls
+
+A wall responds once its room is selected: in edit mode, tap a room, then tap one of its walls
+on the plan, and the wall inspector opens (thickness, curve, corners, openings).
+
+**Apply to all room walls** gives every wall of the room this wall's thickness and grow
+direction, and every corner of the room this wall's corner radius (if its two corners differ,
+the one you set last since opening the inspector; if you set neither since, corners are left
+as they are). Two things reach past the room:
+
+- a wall shared with a neighbouring room is one wall, so it changes in that room too;
+- a corner is shared with whatever meets there, so the radius also lands where other rooms meet
+  the room's corners.
+
+On a shared wall the button is disabled, since "the room" could be either one: select a wall
+only that room has. The undo button in the inspector's header (or Ctrl+Z / Cmd+Z) takes the
+whole apply back in one press.
+
+### Rooms and floors
+
+- **Delete room** acts at once, and the elements placed in the room are deleted with it. A wall
+  it shares with a neighbouring room stays: the neighbour still needs it.
+- A floor's pen icon in the Floors list sets its roles. **Default floor** (the star in the list):
+  presentation opens on it. **Ground floor** (the house): each floor above it is drawn over a
+  faint outline of the walls beneath, so an upper floor can be traced over what it stands on;
+  nothing is traced under the ground floor. With none set, the bottom floor counts as the ground
+  floor.
+- **Delete floor** (while the home has more than one) asks you to confirm: its rooms, and the
+  elements in them, are deleted with it.
+
 ## What the app does, and what leaves your home
 
 | Direction | What | How much |
@@ -196,6 +266,8 @@ State changes cross the relay **in memory only**: nothing is written to disk the
 browser or wall panel is only sent the entities bound to its plan. The app never reads
 your history or logbook, never touches automations, and never sends Home Assistant
 credentials anywhere: the Supervisor hands it a local token that stays inside the app.
+Stratorama never learns your Home Assistant's network address either: the connection starts
+from your home, so nothing ever has to reach in.
 The complete statement is Stratorama's privacy policy: https://stratorama.app/privacy.
 
 ## Permissions
