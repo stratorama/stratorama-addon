@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ALLOWED_HA_CALLS, isAllowedHaCall } from '../src/ha-allowlist.js';
+import { FORWARDED_DOMAINS } from '../src/ha-domains.js';
+
+test('every domain the agent can act on is one whose states it forwards', () => {
+  // A device Stratorama can switch but never hear back from would look dead on the plan.
+  for (const [, path] of ALLOWED_HA_CALLS) {
+    const domain = /^\/api\/services\/([a-z_]+)\//.exec(path)?.[1];
+    if (domain) assert.equal(FORWARDED_DOMAINS.has(domain), true, path);
+  }
+});
 
 test('every call the relay makes is allowed, and there are nine of them', () => {
   assert.equal(ALLOWED_HA_CALLS.length, 9);

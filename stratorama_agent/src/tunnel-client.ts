@@ -4,6 +4,8 @@ import { log } from './log.js';
 import type { HaRestCall } from './ha-client.js';
 import { loadToken, saveToken, clearToken, TOKEN_FILE } from './token-store.js';
 import { isAllowedHaCall } from './ha-allowlist.js';
+import { isForwardedEntity, keepForwardedStates } from './ha-domains.js';
+import { redactTokens } from './ha-redact.js';
 import { noCredentialLine, reactToHelloError } from './hello-errors.js';
 import { LIVENESS_CHECK_MS, RELAY_SILENCE_MS, RelayLiveness } from './liveness.js';
 import type { AgentToServerMsg, ServerToAgentMsg } from './types.js';
@@ -14,9 +16,15 @@ import type { AgentToServerMsg, ServerToAgentMsg } from './types.js';
  * `ha:request` messages from the local Home Assistant REST API, and pushes
  * `state_changed` events upstream through `pushEvent()`.
  *
- * Three things it does NOT do, on purpose:
+ * Five things it does NOT do, on purpose:
  *  - relay a call outside ALLOWED_HA_CALLS (ha-allowlist.ts): answered 403, Home
  *    Assistant never sees it;
+ *  - send the state of a domain Stratorama does not show (ha-domains.ts): a camera, a
+ *    person, a phone's location stay home, in events and in answers alike;
+ *  - send a credential Home Assistant put in a state it does send (a camera's picture
+ *    link copied into a template sensor): every event and every answer leaves through
+ *    ha-redact.ts.
+ *  Both filters run here, at the one door to the relay, so no caller can forget them;
  *  - trust a socket that merely looks open: a socket that has carried nothing from the
  *    relay for RELAY_SILENCE_MS is terminated and reopened (liveness.ts);
  *  - retry a refusal no retry can fix: a used or expired code, or a revoked credential
@@ -83,10 +91,21 @@ export class TunnelClient {
     ws?.close();
   }
 
-  /** Forward a state_changed event to the relay. No-op while not registered. */
+  /**
+   * Forward a state_changed event to the relay, if it is of a domain Stratorama shows, without
+   * its tokens. No-op while not registered.
+   */
   pushEvent(data: { entity_id: string; new_state: unknown; old_state: unknown }): void {
-    if (!this.#ready) return;
-    this.#send({ type: 'ha:event', eventType: 'state_changed', data });
+    if (!this.#ready || !isForwardedEntity(data.entity_id)) return;
+    this.#send({
+      type: 'ha:event',
+      eventType: 'state_changed',
+      data: {
+        entity_id: data.entity_id,
+        new_state: redactTokens(data.new_state),
+        old_state: redactTokens(data.old_state),
+      },
+    });
   }
 
   // ---------- internals ----------
@@ -230,7 +249,12 @@ export class TunnelClient {
         return;
       }
       const result = await this.#opts.callHa(msg.method, msg.path, msg.body);
-      this.#send({ type: 'ha:response', requestId: msg.requestId, status: result.status, body: result.body });
+      this.#send({
+        type: 'ha:response',
+        requestId: msg.requestId,
+        status: result.status,
+        body: redactTokens(keepForwardedStates(result.body)),
+      });
       return;
     }
 

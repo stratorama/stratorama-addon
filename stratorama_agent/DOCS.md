@@ -37,12 +37,20 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
   entities** (`GET /api/states`) and sends **service calls for the devices you placed on
   your plan**: lights, switches and covers - turn on, turn off, set brightness and colour,
   open, close, stop, set position. The app itself refuses any other call, whoever asks.
-- It also forwards every **state change** Home Assistant emits. State changes travel through
-  Stratorama's server **in memory only**: they are never written to disk there, and each
-  browser or wall panel is only sent the entities that are actually bound to its plan.
+- It also forwards the **state changes** of the five kinds of entity Stratorama shows -
+  lights, switches, covers, sensors and binary sensors - and of nothing else: people and device
+  trackers (who is home, where each phone is), cameras, media players and every other entity
+  stay in your home, in the entity list as much as in the state changes. A sensor that reports
+  a location, such as the Companion app's geocoded address, is a sensor and is forwarded like
+  any other. What it does forward travels through
+  Stratorama's server **in memory only**: it is never written to disk there, and each browser
+  or wall panel is only sent the entities that are actually bound to its plan.
 - It never reads your history or logbook, never touches automations, and never sends
   Home Assistant credentials anywhere: the Supervisor gives the app a local token that
-  stays inside the app.
+  stays inside the app. The tokens Home Assistant itself puts in some states (an
+  `access_token`, the `?token=` of a camera's picture link, a stream token) are removed, in
+  the forms Home Assistant writes them, before a state leaves your home, even from a sensor
+  that copies such a link.
 
 The full statement is in Stratorama's privacy policy: https://stratorama.app/privacy.
 

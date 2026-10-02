@@ -259,13 +259,24 @@ whole apply back in one press.
 
 | Direction | What | How much |
 |---|---|---|
-| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
-| Home Assistant -> relay | every `state_changed` event | continuous |
+| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens; the app answers with the five domains below only) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
+| Home Assistant -> relay | the `state_changed` events of `light`, `switch`, `cover`, `sensor` and `binary_sensor` entities, without the tokens below; nothing of any other domain | continuous |
 
-State changes cross the relay **in memory only**: nothing is written to disk there, and each
-browser or wall panel is only sent the entities bound to its plan. The app never reads
-your history or logbook, never touches automations, and never sends Home Assistant
-credentials anywhere: the Supervisor hands it a local token that stays inside the app.
+Since 1.3.0 the app sends only the five domains Stratorama shows, in events, in the snapshot
+and in service-call answers alike ([`src/ha-domains.ts`](stratorama_agent/src/ha-domains.ts)):
+`person` and `device_tracker` entities (who is home, where each phone is), cameras, media
+players and every other entity stay in your home. The filter is by domain: a sensor that
+reports a location, such as the Companion app's geocoded address, is a sensor and is sent like
+any other. State changes cross the relay **in memory only**:
+nothing is written to disk there, and each browser or wall panel is only sent the entities
+bound to its plan. The app never reads your history or logbook, never touches automations,
+and never sends Home Assistant credentials anywhere: the Supervisor hands it a local token
+that stays inside the app. Home Assistant also puts tokens of its own in some states - an
+`access_token` attribute, the `?token=` of a camera's picture link, a stream token in an
+`/api/hls/` path - and one can travel into a state the app does send (a template sensor whose
+state is a camera's picture link): the app removes them, in the forms Home Assistant writes
+them, before the state leaves your home, along with entity picture links and the
+`user:password@` of an address ([`src/ha-redact.ts`](stratorama_agent/src/ha-redact.ts)).
 Stratorama never learns your Home Assistant's network address either: the connection starts
 from your home, so nothing ever has to reach in.
 The complete statement is Stratorama's privacy policy: https://stratorama.app/privacy.

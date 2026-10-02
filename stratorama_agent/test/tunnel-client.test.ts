@@ -20,13 +20,17 @@ const tokenFile = join(dataDir, 'agent-token.json');
 process.env.AGENT_DATA_DIR = dataDir;
 
 const haCalls: { method: string; url: string; auth: string | undefined; body: string }[] = [];
+/** What the fake Home Assistant answers a GET and a POST with; reset before every test. */
+const DEFAULT_HA_GET_BODY = '[{"entity_id":"light.kitchen","state":"on"}]';
+let haGetBody = DEFAULT_HA_GET_BODY;
+let haPostBody = '[]';
 const fakeHa = createServer((req, res) => {
   let body = '';
   req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
   req.on('end', () => {
     haCalls.push({ method: req.method ?? '', url: req.url ?? '', auth: req.headers.authorization, body });
     res.setHeader('content-type', 'application/json');
-    res.end(req.method === 'GET' ? '[{"entity_id":"light.kitchen","state":"on"}]' : '[]');
+    res.end(req.method === 'GET' ? haGetBody : haPostBody);
   });
 });
 await new Promise<void>((resolve) => fakeHa.listen(0, '127.0.0.1', resolve));
@@ -103,6 +107,8 @@ function makeClient(relay: Relay, overrides: Partial<Options> = {}) {
 beforeEach(() => {
   rmSync(tokenFile, { force: true });
   haCalls.length = 0;
+  haGetBody = DEFAULT_HA_GET_BODY;
+  haPostBody = '[]';
 });
 
 after(() => {
@@ -192,6 +198,106 @@ test('pairs with its version, stores the credential, relays the allowed calls an
 
     assert.equal(relay.sockets.length, 1);
     assert.deepEqual(gaveUp, []);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('only the domains Stratorama shows leave the home: a camera, a person, a phone are never sent', async () => {
+  const light = { entity_id: 'light.kitchen', state: 'on', attributes: { brightness: 255 } };
+  const sensor = { entity_id: 'sensor.bedroom_temperature', state: '21.5', attributes: { unit_of_measurement: '°C' } };
+  const camera = {
+    entity_id: 'camera.porch',
+    state: 'idle',
+    attributes: { access_token: 'tok-camera', entity_picture: '/api/camera_proxy/camera.porch?token=tok-camera' },
+  };
+  const person = { entity_id: 'person.alice', state: 'not_home', attributes: { latitude: 45.7612, longitude: 4.8317 } };
+  const phone = { entity_id: 'device_tracker.alices_phone', state: 'not_home', attributes: { latitude: 45.7613, longitude: 4.8318 } };
+  haGetBody = JSON.stringify([light, camera, person, phone, sensor]);
+  haPostBody = JSON.stringify([light, camera]);
+
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+    const socket = relay.sockets[0]!;
+    send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    await until(() => readiness.includes(true), 'the registration');
+
+    for (const state of [camera, person, phone]) {
+      client.pushEvent({ entity_id: state.entity_id, new_state: state, old_state: state });
+    }
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: light, old_state: { ...light, state: 'off' } });
+    send(socket, { type: 'ha:request', requestId: 's1', method: 'GET', path: '/api/states' });
+    send(socket, {
+      type: 'ha:request',
+      requestId: 's2',
+      method: 'POST',
+      path: '/api/services/light/turn_on',
+      body: { entity_id: 'light.kitchen' },
+    });
+    await until(() => relay.inbox[0]!.length >= 4, 'the light event and both answers');
+    await sleep(100); // and nothing else after them
+
+    assert.equal(relay.inbox[0]!.length, 4);
+    const events = relay.inbox[0]!.filter((m) => m['type'] === 'ha:event');
+    assert.deepEqual(events.map((m) => (m['data'] as { entity_id: string }).entity_id), ['light.kitchen']);
+    const answer = (id: string) => relay.inbox[0]!.find((m) => m['requestId'] === id) as { status: number; body: unknown };
+    assert.deepEqual(answer('s1'), { type: 'ha:response', requestId: 's1', status: 200, body: [light, sensor] });
+    assert.deepEqual(answer('s2').body, [light]);
+    const wire = JSON.stringify(relay.inbox[0]);
+    for (const leak of ['camera.porch', 'tok-camera', 'person.alice', 'alices_phone', '45.761']) {
+      assert.equal(wire.includes(leak), false, `${leak} reached the relay`);
+    }
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('a token inside a state that does leave is still cut out: a template sensor holding a camera link', async () => {
+  // A "snapshot URL" template sensor: its state is a camera's entity_picture, live token included.
+  const snapshotUrl = (token: string) => ({
+    entity_id: 'sensor.porch_snapshot_url',
+    state: `http://192.168.1.10:8123/api/camera_proxy/camera.porch?token=${token}`,
+    attributes: { friendly_name: 'Porch snapshot URL', picture: `/api/camera_proxy/camera.porch?token=${token}` },
+  });
+  const redacted = {
+    entity_id: 'sensor.porch_snapshot_url',
+    state: 'http://192.168.1.10:8123/api/camera_proxy/camera.porch',
+    attributes: { friendly_name: 'Porch snapshot URL', picture: '/api/camera_proxy/camera.porch' },
+  };
+  haGetBody = JSON.stringify([snapshotUrl('tok-snapshot')]);
+
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+    const socket = relay.sockets[0]!;
+    send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    await until(() => readiness.includes(true), 'the registration');
+
+    send(socket, { type: 'ha:request', requestId: 's1', method: 'GET', path: '/api/states' });
+    client.pushEvent({
+      entity_id: 'sensor.porch_snapshot_url',
+      new_state: snapshotUrl('tok-new'),
+      old_state: snapshotUrl('tok-old'),
+    });
+    await until(() => relay.inbox[0]!.length >= 3, 'the answer and the event');
+
+    const wire = JSON.stringify(relay.inbox[0]);
+    for (const token of ['tok-snapshot', 'tok-new', 'tok-old']) {
+      assert.equal(wire.includes(token), false, `${token} reached the relay`);
+    }
+    assert.deepEqual((relay.inbox[0]!.find((m) => m['requestId'] === 's1') as { body: unknown }).body, [redacted]);
+    assert.deepEqual(relay.inbox[0]!.find((m) => m['type'] === 'ha:event'), {
+      type: 'ha:event',
+      eventType: 'state_changed',
+      data: { entity_id: 'sensor.porch_snapshot_url', new_state: redacted, old_state: redacted },
+    });
   } finally {
     client.stop();
     await relay.close();

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.0 - Only what Stratorama shows leaves your home
+
+- The agent now sends the relay the states of the five domains Stratorama shows - `light`,
+  `switch`, `cover`, `sensor` and `binary_sensor` - and nothing else, in state changes, in the
+  entity snapshot and in service-call answers (`src/ha-domains.ts`). Until now it sent every
+  entity Home Assistant has, each time it changed: who is home and where everyone is
+  (`person`, `device_tracker`), cameras with their access tokens, media players, calendars.
+  Stratorama never showed any of it, and its device picker lists exactly what it listed
+  before. The filter is by domain: a sensor that reports a location, such as the Companion
+  app's geocoded address, is a sensor and is still sent. A device type Stratorama starts
+  supporting will come with a new agent version, the way a new call does.
+- Home Assistant's own tokens are also removed from what does leave (`src/ha-redact.ts`), in
+  the forms Home Assistant writes them: an `access_token` attribute, an entity picture link
+  (`entity_picture`, `entity_picture_local`: Stratorama shows none), the `token`,
+  `access_token` and `authSig` parameters of a link, the token in an `/api/hls/` or
+  `/api/tts_proxy/` path, and the `user:password@` of an address. A template sensor whose
+  state is a camera's picture link, for example, carries that camera's token, which opens its
+  live stream without signing in to anyone who can reach Home Assistant; a garadget garage door
+  carries its maker's cloud token.
+- Stratorama's relay applies the same two rules to an agent that is not updated yet, so no
+  browser receives any of it whichever version you run; updating keeps it inside your home.
+
 ## 1.2.0 - Also runs without Home Assistant OS
 
 - New: the same agent as a standalone Docker image, `ghcr.io/stratorama/stratorama-agent`

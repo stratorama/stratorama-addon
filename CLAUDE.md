@@ -31,6 +31,7 @@ src/
 ## Conventions
 
 - **Defense-in-depth on `ha:request`** — every incoming WS frame is runtime-validated (`requestId`, `method` ∈ {GET,POST}, `path` starts with `/api/` and has no `..`) before being forwarded to HA. The JSON cast in TypeScript is *not* trusted.
+- **Only what Stratorama shows leaves, and without tokens** - every state sent to the relay (`pushEvent`, and every `ha:response` body) goes through `src/ha-domains.ts` (only `light`, `switch`, `cover`, `sensor`, `binary_sensor`; a new device type needs a new entry and a release) and then `src/ha-redact.ts` (drops `access_token`, `entity_picture` and `entity_picture_local` keys, cuts `token` / `access_token` / `authSig` out of URLs in one linear pass - no fixed-point loop, a hostile string must not go quadratic - the token out of `/api/hls/` and `/api/tts_proxy/` paths and `user:password@` out of URLs, bounded depth). A new path that sends states upstream must go through both. Both have twins in `../stratorama-tunnel/src/` applied on arrival, for agents that predate them: the relay file is its own header plus this file's code verbatim, and its spec is this test file verbatim behind an assert shim - change both, same cases.
 - **Wire types** in `src/types.ts` must stay synced with `../stratorama-tunnel/src/types.ts`
 - **Outbound-only** — the add-on never opens an inbound port
 
