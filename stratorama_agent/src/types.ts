@@ -36,9 +36,29 @@ export interface ServerHaRequest {
   method: 'GET' | 'POST';
   path: string;
   body?: unknown;
+  /**
+   * For `GET /api/states`: which entities the answer may carry in full (ha-views.ts). Unknown
+   * until checked by `parseView`; absent or malformed, the answer is metadata only. A relay
+   * older than 1.4.0 sends none.
+   */
+  view?: unknown;
 }
 
-export type ServerToAgentMsg = ServerHelloOk | ServerHelloError | ServerHaRequest;
+/**
+ * The entities the home's plan binds (its elements, their readings, its doors' sensors, its
+ * device library), sent after every hello and again whenever a binding changes. Since 1.4.0 the
+ * agent forwards a state change only for these; until the first one arrives on a connection, it
+ * forwards none. Sent only to an agent whose hello names the `bound-set` capability.
+ */
+export interface ServerBoundSet {
+  type: 'agent:bound-set';
+  entityIds: string[];
+}
+
+export type ServerToAgentMsg = ServerHelloOk | ServerHelloError | ServerHaRequest | ServerBoundSet;
+
+/** What this agent understands beyond the base protocol, named in every hello. */
+export const AGENT_CAPABILITIES = ['bound-set'] as const;
 
 // Agent -> Server
 
@@ -54,6 +74,8 @@ export interface AgentHelloPair {
    * agents are there?" has an answer. A relay older than 1.2.0 strips it unread.
    */
   agentRuntime: AgentRuntime;
+  /** AGENT_CAPABILITIES, since 1.4.0. A relay older than that strips it unread. */
+  agentCapabilities: readonly string[];
 }
 
 export interface AgentHelloReconnect {
@@ -62,6 +84,7 @@ export interface AgentHelloReconnect {
   agentToken: string;
   agentVersion: string;
   agentRuntime: AgentRuntime;
+  agentCapabilities: readonly string[];
 }
 
 export interface AgentHaResponse {

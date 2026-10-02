@@ -37,12 +37,13 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
   entities** (`GET /api/states`) and sends **service calls for the devices you placed on
   your plan**: lights, switches and covers - turn on, turn off, set brightness and colour,
   open, close, stop, set position. The app itself refuses any other call, whoever asks.
-- It also forwards the **state changes** of the five kinds of entity Stratorama shows -
-  lights, switches, covers, sensors and binary sensors - and of nothing else: people and device
-  trackers (who is home, where each phone is), cameras, media players and every other entity
-  stay in your home, in the entity list as much as in the state changes. A sensor that reports
-  a location, such as the Companion app's geocoded address, is a sensor and is forwarded like
-  any other. What it does forward travels through
+- It also forwards the **state changes of the entities on your plan** - its devices, their
+  readings, your doors' sensors and your device library - and of nothing else: everything not
+  on your plan stays in your home, and only lights, switches, covers, sensors and binary
+  sensors ever leave it, so people and device trackers (who is home, where each phone is),
+  cameras and media players never do. When an editor opens Stratorama's device picker, the
+  other lights, switches, covers and sensors are listed **by name, kind and unit only**, with
+  no value; pressing Show value reads one of them, once. What it does forward travels through
   Stratorama's server **in memory only**: it is never written to disk there, and each browser
   or wall panel is only sent the entities that are actually bound to its plan.
 - It never reads your history or logbook, never touches automations, and never sends

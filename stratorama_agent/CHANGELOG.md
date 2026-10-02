@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0 - Only what is on your plan leaves your home
+
+- The agent now forwards a state change only for the entities your plan uses: its devices,
+  their readings, your doors' and windows' sensors, and the devices in your device library.
+  Stratorama's relay tells it which after every connection and whenever you link or unlink
+  something; until it has, the agent forwards nothing at all. Everything else stays home, a
+  sensor of a kind Stratorama shows included - a phone's geocoded address, a one-time code, a
+  notification's text.
+- The device picker still lists the rest, by name, kind and unit only, with no value. Its "Show
+  value" reads one entity's current value when an editor asks, and that is the only moment the
+  value of something not on your plan leaves your home.
+- The plan's own snapshot carries only the entities the person or tablet asking may see, and a
+  service call's answer carries its status only (the relay never read the rest).
+- The calls the agent makes to Home Assistant do not change: still the nine of
+  `src/ha-allowlist.ts`. The relay's request names what the answer may carry
+  (`src/ha-views.ts`); the agent reads `GET /api/states` as before and cuts the answer to it.
+- It needs a relay that names your plan's entities, which Stratorama's has done since
+  2026-10-02. Against an older one (a `tunnel_url` / `TUNNEL_URL` of your own), it connects
+  and forwards nothing: stay on 1.3.0 there.
+
 ## 1.3.0 - Only what Stratorama shows leaves your home
 
 - The agent now sends the relay the states of the five domains Stratorama shows - `light`,

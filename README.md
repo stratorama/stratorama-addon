@@ -259,15 +259,21 @@ whole apply back in one press.
 
 | Direction | What | How much |
 |---|---|---|
-| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens; the app answers with the five domains below only) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
-| Home Assistant -> relay | the `state_changed` events of `light`, `switch`, `cover`, `sensor` and `binary_sensor` entities, without the tokens below; nothing of any other domain | continuous |
+| Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads, the entity picker opens, or the picker's Show value is pressed; the app answers with what the relay's request names, below) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
+| Home Assistant -> relay | the `state_changed` events of the entities on your plan (its devices, their readings, your doors' sensors, your device library), of the five domains below and without the tokens below; nothing else | continuous |
+| Home Assistant -> relay, on request | the entity list for the picker: the entities on your plan in full, every other light, switch, cover and sensor by name, kind and unit only; one entity's value when an editor presses Show value | when the picker opens |
 
-Since 1.3.0 the app sends only the five domains Stratorama shows, in events, in the snapshot
-and in service-call answers alike ([`src/ha-domains.ts`](stratorama_agent/src/ha-domains.ts)):
-`person` and `device_tracker` entities (who is home, where each phone is), cameras, media
-players and every other entity stay in your home. The filter is by domain: a sensor that
-reports a location, such as the Companion app's geocoded address, is a sensor and is sent like
-any other. State changes cross the relay **in memory only**:
+Since 1.4.0 the app forwards a state change only for the entities on your plan, which
+Stratorama's relay names after every connection and whenever you link or unlink something;
+until it has, the app forwards nothing. Every answer to `GET /api/states` is cut to what the
+relay's request names ([`src/ha-views.ts`](stratorama_agent/src/ha-views.ts)): the plan's
+snapshot to the entities the person or tablet asking may see, the picker's list to names, kinds
+and units for everything not on your plan, Show value to one entity. A service call's answer is
+its status only. Since 1.3.0, and on every path, only the five domains Stratorama shows ever
+leave ([`src/ha-domains.ts`](stratorama_agent/src/ha-domains.ts)): `person` and
+`device_tracker` entities, cameras, media players and every other domain stay in your home. A
+sensor you do not put on the plan - a phone's geocoded address, a one-time code - leaves as a
+name in the picker's list, never as a value unless an editor asks. State changes cross the relay **in memory only**:
 nothing is written to disk there, and each browser or wall panel is only sent the entities
 bound to its plan. The app never reads your history or logbook, never touches automations,
 and never sends Home Assistant credentials anywhere: the Supervisor hands it a local token

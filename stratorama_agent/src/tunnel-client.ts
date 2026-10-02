@@ -5,10 +5,11 @@ import type { HaRestCall } from './ha-client.js';
 import { loadToken, saveToken, clearToken, TOKEN_FILE } from './token-store.js';
 import { isAllowedHaCall } from './ha-allowlist.js';
 import { isForwardedEntity, keepForwardedStates } from './ha-domains.js';
+import { applyView, parseView } from './ha-views.js';
 import { redactTokens } from './ha-redact.js';
 import { noCredentialLine, reactToHelloError } from './hello-errors.js';
 import { LIVENESS_CHECK_MS, RELAY_SILENCE_MS, RelayLiveness } from './liveness.js';
-import type { AgentToServerMsg, ServerToAgentMsg } from './types.js';
+import { AGENT_CAPABILITIES, type AgentToServerMsg, type ServerToAgentMsg } from './types.js';
 
 /**
  * Maintains the long-lived WebSocket to the Stratorama relay: authenticates (pair once
@@ -72,6 +73,11 @@ export class TunnelClient {
   #livenessTimer: NodeJS.Timeout | null = null;
   /** Set when the next reconnect must not wait for the backoff (a credential just forgotten, with a code to try). */
   #reconnectAtOnce = false;
+  /**
+   * The entities the plan binds, as the relay last said (`agent:bound-set`). Null on a fresh
+   * connection until the relay sends it, and null means NOTHING is forwarded: fail closed.
+   */
+  #boundSet: ReadonlySet<string> | null = null;
 
   constructor(opts: TunnelClientOptions) {
     this.#opts = opts;
@@ -92,11 +98,12 @@ export class TunnelClient {
   }
 
   /**
-   * Forward a state_changed event to the relay, if it is of a domain Stratorama shows, without
-   * its tokens. No-op while not registered.
+   * Forward a state_changed event to the relay, if it is of a domain Stratorama shows AND of an
+   * entity the plan binds, without its tokens. No-op while not registered, and until the relay has
+   * said what the plan binds on this connection.
    */
   pushEvent(data: { entity_id: string; new_state: unknown; old_state: unknown }): void {
-    if (!this.#ready || !isForwardedEntity(data.entity_id)) return;
+    if (!this.#ready || !isForwardedEntity(data.entity_id) || !this.#boundSet?.has(data.entity_id)) return;
     this.#send({
       type: 'ha:event',
       eventType: 'state_changed',
@@ -122,6 +129,8 @@ export class TunnelClient {
     const ws = new WebSocket(url);
     this.#ws = ws;
     this.#setReady(false);
+    // A new connection knows nothing of the plan until the relay says it again.
+    this.#boundSet = null;
 
     // Every listener checks `this.#ws === ws` first: a socket that was replaced
     // (terminated for silence, then reopened) still emits 'close' and 'error' afterwards,
@@ -162,14 +171,22 @@ export class TunnelClient {
     if (this.#ws !== ws) return;
     const agentVersion = this.#opts.version;
     const agentRuntime = this.#opts.runtime;
+    const agentCapabilities = AGENT_CAPABILITIES;
     if (stored) {
       log.info('Reconnecting with the stored credential');
-      this.#send({ type: 'agent:hello', mode: 'reconnect', agentToken: stored, agentVersion, agentRuntime });
+      this.#send({ type: 'agent:hello', mode: 'reconnect', agentToken: stored, agentVersion, agentRuntime, agentCapabilities });
       return;
     }
     if (this.#opts.pairingCode) {
       log.info('Pairing with the code from the configuration');
-      this.#send({ type: 'agent:hello', mode: 'pair', pairingCode: this.#opts.pairingCode, agentVersion, agentRuntime });
+      this.#send({
+        type: 'agent:hello',
+        mode: 'pair',
+        pairingCode: this.#opts.pairingCode,
+        agentVersion,
+        agentRuntime,
+        agentCapabilities,
+      });
       return;
     }
     this.#giveUp(noCredentialLine(agentRuntime));
@@ -186,6 +203,21 @@ export class TunnelClient {
     }
     if (msg === null || typeof msg !== 'object') {
       log.warn('Ignoring a relay message that is not an object');
+      return;
+    }
+
+    // Applied BEFORE anything awaits, so that a request the relay sends right after it is answered
+    // against it: the socket is ordered, and this handler only yields at its first await.
+    if (msg.type === 'agent:bound-set') {
+      const ids = (msg as { entityIds?: unknown }).entityIds;
+      if (Array.isArray(ids) && ids.length <= 20_000 && ids.every((id) => typeof id === 'string')) {
+        if (this.#boundSet === null) log.info(`The relay named the plan's entities (${ids.length})`);
+        this.#boundSet = new Set(ids);
+      } else {
+        // Malformed: forward nothing rather than keep a set the relay meant to replace.
+        log.warn('Ignoring a malformed bound set, and forwarding no state change until the next one');
+        this.#boundSet = new Set();
+      }
       return;
     }
 
@@ -253,7 +285,10 @@ export class TunnelClient {
         type: 'ha:response',
         requestId: msg.requestId,
         status: result.status,
-        body: redactTokens(keepForwardedStates(result.body)),
+        // A service call answers its status only: the relay reads nothing else of it, and the
+        // body is the states the call changed. The snapshot is cut to the domains, then to the
+        // view the relay asked for (ha-views.ts), then cleaned of Home Assistant's tokens.
+        body: msg.method === 'POST' ? null : redactTokens(applyView(keepForwardedStates(result.body), parseView(msg.view))),
       });
       return;
     }

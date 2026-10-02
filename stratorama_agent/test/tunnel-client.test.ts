@@ -128,10 +128,13 @@ test('pairs with its version, stores the credential, relays the allowed calls an
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
+      agentCapabilities: ['bound-set'],
     });
 
     const socket = relay.sockets[0]!;
     send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    // What the plan binds; every request below arrives after it, on the same ordered socket.
+    send(socket, { type: 'agent:bound-set', entityIds: ['light.kitchen'] });
     await until(() => existsSync(tokenFile), 'the credential to be stored');
     assert.deepEqual(JSON.parse(readFileSync(tokenFile, 'utf8')), { agentToken: 'token-1' });
 
@@ -146,8 +149,14 @@ test('pairs with its version, stores the credential, relays the allowed calls an
     });
     assert.equal(haCalls.length, 0);
 
-    // Inside it: forwarded with the Supervisor token, answer relayed as is.
-    send(socket, { type: 'ha:request', requestId: 'r2', method: 'GET', path: '/api/states' });
+    // Inside it: forwarded with the Supervisor token, answered as the view asks.
+    send(socket, {
+      type: 'ha:request',
+      requestId: 'r2',
+      method: 'GET',
+      path: '/api/states',
+      view: { kind: 'runtime', entityIds: ['light.kitchen'] },
+    });
     await until(() => relay.inbox[0]!.length >= 3, 'the states answer');
     assert.deepEqual(relay.inbox[0]![2], {
       type: 'ha:response',
@@ -170,7 +179,8 @@ test('pairs with its version, stores the credential, relays the allowed calls an
       body: { entity_id: 'light.kitchen', brightness_pct: 40 },
     });
     await until(() => relay.inbox[0]!.length >= 4, 'the service answer');
-    assert.equal((relay.inbox[0]![3] as { status: number }).status, 200);
+    // Its status only: the states the call changed stay home (the relay reads nothing else).
+    assert.deepEqual(relay.inbox[0]![3], { type: 'ha:response', requestId: 'r3', status: 200, body: null });
     assert.deepEqual(haCalls[1], {
       method: 'POST',
       url: '/api/services/light/turn_on',
@@ -204,6 +214,20 @@ test('pairs with its version, stores the credential, relays the allowed calls an
   }
 });
 
+/** Registers, names the plan's entities, and waits until that has applied (one request round-trip). */
+async function registeredWith(relay: Relay, readiness: boolean[], entityIds: string[]): Promise<WebSocket> {
+  await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
+  const socket = relay.sockets[0]!;
+  send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
+  send(socket, { type: 'agent:bound-set', entityIds });
+  await until(() => readiness.includes(true), 'the registration');
+  // Ordered socket: once this is answered, the set before it has applied.
+  const before = relay.inbox[0]!.length;
+  send(socket, { type: 'ha:request', requestId: 'sync', method: 'GET', path: '/api/states', view: { kind: 'runtime', entityIds: [] } });
+  await until(() => relay.inbox[0]!.length > before, 'the set to apply');
+  return socket;
+}
+
 test('only the domains Stratorama shows leave the home: a camera, a person, a phone are never sent', async () => {
   const light = { entity_id: 'light.kitchen', state: 'on', attributes: { brightness: 255 } };
   const sensor = { entity_id: 'sensor.bedroom_temperature', state: '21.5', attributes: { unit_of_measurement: '°C' } };
@@ -214,9 +238,49 @@ test('only the domains Stratorama shows leave the home: a camera, a person, a ph
   };
   const person = { entity_id: 'person.alice', state: 'not_home', attributes: { latitude: 45.7612, longitude: 4.8317 } };
   const phone = { entity_id: 'device_tracker.alices_phone', state: 'not_home', attributes: { latitude: 45.7613, longitude: 4.8318 } };
-  haGetBody = JSON.stringify([light, camera, person, phone, sensor]);
-  haPostBody = JSON.stringify([light, camera]);
+  const all = [light, camera, person, phone, sensor];
+  haGetBody = JSON.stringify(all);
 
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    // Even a relay that names them all gets none of the other domains.
+    const socket = await registeredWith(relay, readiness, all.map((s) => s.entity_id));
+    const start = relay.inbox[0]!.length;
+
+    for (const state of [camera, person, phone]) {
+      client.pushEvent({ entity_id: state.entity_id, new_state: state, old_state: state });
+    }
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: light, old_state: { ...light, state: 'off' } });
+    send(socket, {
+      type: 'ha:request',
+      requestId: 's1',
+      method: 'GET',
+      path: '/api/states',
+      view: { kind: 'runtime', entityIds: all.map((s) => s.entity_id) },
+    });
+    await until(() => relay.inbox[0]!.length >= start + 2, 'the light event and the answer');
+    await sleep(100); // and nothing else after them
+
+    const sent = relay.inbox[0]!.slice(start);
+    assert.equal(sent.length, 2);
+    const events = sent.filter((m) => m['type'] === 'ha:event');
+    assert.deepEqual(events.map((m) => (m['data'] as { entity_id: string }).entity_id), ['light.kitchen']);
+    assert.deepEqual(sent.find((m) => m['requestId'] === 's1'), { type: 'ha:response', requestId: 's1', status: 200, body: [light, sensor] });
+    const wire = JSON.stringify(relay.inbox[0]);
+    for (const leak of ['camera.porch', 'tok-camera', 'person.alice', 'alices_phone', '45.761']) {
+      assert.equal(wire.includes(leak), false, `${leak} reached the relay`);
+    }
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('only the entities the plan binds leave: nothing before the relay names them, then those alone', async () => {
+  const lamp = { entity_id: 'light.kitchen', state: 'on', attributes: {} };
+  const otp = { entity_id: 'sensor.otp_bank', state: '492071', attributes: { friendly_name: 'Bank OTP' } };
   const relay = await startRelay();
   const { client, readiness } = makeClient(relay);
   try {
@@ -226,31 +290,93 @@ test('only the domains Stratorama shows leave the home: a camera, a person, a ph
     send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
     await until(() => readiness.includes(true), 'the registration');
 
-    for (const state of [camera, person, phone]) {
-      client.pushEvent({ entity_id: state.entity_id, new_state: state, old_state: state });
-    }
-    client.pushEvent({ entity_id: 'light.kitchen', new_state: light, old_state: { ...light, state: 'off' } });
-    send(socket, { type: 'ha:request', requestId: 's1', method: 'GET', path: '/api/states' });
-    send(socket, {
-      type: 'ha:request',
-      requestId: 's2',
-      method: 'POST',
-      path: '/api/services/light/turn_on',
-      body: { entity_id: 'light.kitchen' },
-    });
-    await until(() => relay.inbox[0]!.length >= 4, 'the light event and both answers');
-    await sleep(100); // and nothing else after them
+    // Registered, but the plan not named yet: fail closed.
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: lamp, old_state: lamp });
+    await sleep(100);
+    assert.equal(relay.inbox[0]!.some((m) => m['type'] === 'ha:event'), false);
 
-    assert.equal(relay.inbox[0]!.length, 4);
+    send(socket, { type: 'agent:bound-set', entityIds: ['light.kitchen'] });
+    send(socket, { type: 'ha:request', requestId: 'sync', method: 'GET', path: '/api/states', view: { kind: 'runtime', entityIds: [] } });
+    await until(() => relay.inbox[0]!.some((m) => m['requestId'] === 'sync'), 'the set to apply');
+    client.pushEvent({ entity_id: 'sensor.otp_bank', new_state: otp, old_state: otp });
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: lamp, old_state: lamp });
+    await until(() => relay.inbox[0]!.some((m) => m['type'] === 'ha:event'), 'the bound event');
+    await sleep(100);
     const events = relay.inbox[0]!.filter((m) => m['type'] === 'ha:event');
     assert.deepEqual(events.map((m) => (m['data'] as { entity_id: string }).entity_id), ['light.kitchen']);
-    const answer = (id: string) => relay.inbox[0]!.find((m) => m['requestId'] === id) as { status: number; body: unknown };
-    assert.deepEqual(answer('s1'), { type: 'ha:response', requestId: 's1', status: 200, body: [light, sensor] });
-    assert.deepEqual(answer('s2').body, [light]);
-    const wire = JSON.stringify(relay.inbox[0]);
-    for (const leak of ['camera.porch', 'tok-camera', 'person.alice', 'alices_phone', '45.761']) {
-      assert.equal(wire.includes(leak), false, `${leak} reached the relay`);
-    }
+    assert.equal(JSON.stringify(relay.inbox[0]).includes('492071'), false);
+
+    // A malformed set forwards nothing until the next good one.
+    send(socket, { type: 'agent:bound-set', entityIds: 'light.kitchen' });
+    send(socket, { type: 'ha:request', requestId: 'sync2', method: 'GET', path: '/api/states', view: { kind: 'runtime', entityIds: [] } });
+    await until(() => relay.inbox[0]!.some((m) => m['requestId'] === 'sync2'), 'the malformed set to apply');
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: lamp, old_state: lamp });
+    await sleep(100);
+    assert.equal(relay.inbox[0]!.filter((m) => m['type'] === 'ha:event').length, 1);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('a new connection starts with no set: the last one\'s names are not reused until the relay sends them again', async () => {
+  const lamp = { entity_id: 'light.kitchen', state: 'on', attributes: {} };
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    await registeredWith(relay, readiness, ['light.kitchen']);
+    relay.sockets[0]!.terminate();
+    await until(() => (relay.inbox[1]?.length ?? 0) >= 1, 'the second hello', 4_000);
+    const socket = relay.sockets[1]!;
+    send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    await until(() => readiness.filter(Boolean).length === 2, 'the second registration');
+
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: lamp, old_state: lamp });
+    await sleep(100);
+    assert.equal(relay.inbox[1]!.some((m) => m['type'] === 'ha:event'), false);
+
+    send(socket, { type: 'agent:bound-set', entityIds: ['light.kitchen'] });
+    send(socket, { type: 'ha:request', requestId: 'sync', method: 'GET', path: '/api/states', view: { kind: 'runtime', entityIds: [] } });
+    await until(() => relay.inbox[1]!.some((m) => m['requestId'] === 'sync'), 'the set to apply');
+    client.pushEvent({ entity_id: 'light.kitchen', new_state: lamp, old_state: lamp });
+    await until(() => relay.inbox[1]!.some((m) => m['type'] === 'ha:event'), 'the bound event');
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+});
+
+test('the snapshot carries what the view asks for: the picker gets names, a value only on request', async () => {
+  const lamp = { entity_id: 'light.kitchen', state: 'on', attributes: { friendly_name: 'Kitchen' } };
+  const garage = {
+    entity_id: 'sensor.garage_temperature',
+    state: '4.0',
+    attributes: { friendly_name: 'Garage', device_class: 'temperature', unit_of_measurement: '°C', battery: 80 },
+  };
+  const otp = { entity_id: 'sensor.otp_bank', state: '492071', attributes: { friendly_name: 'Bank OTP' } };
+  haGetBody = JSON.stringify([lamp, garage, otp]);
+  const relay = await startRelay();
+  const { client, readiness } = makeClient(relay);
+  try {
+    client.start();
+    const socket = await registeredWith(relay, readiness, ['light.kitchen']);
+    const answer = async (requestId: string, view: unknown) => {
+      send(socket, { type: 'ha:request', requestId, method: 'GET', path: '/api/states', ...(view === undefined ? {} : { view }) });
+      await until(() => relay.inbox[0]!.some((m) => m['requestId'] === requestId), requestId);
+      return (relay.inbox[0]!.find((m) => m['requestId'] === requestId) as { body: unknown }).body;
+    };
+
+    assert.deepEqual(await answer('catalog', { kind: 'catalog', entityIds: ['light.kitchen'] }), [
+      lamp,
+      { entity_id: 'sensor.garage_temperature', attributes: { friendly_name: 'Garage', device_class: 'temperature', unit_of_measurement: '°C' } },
+      { entity_id: 'sensor.otp_bank', attributes: { friendly_name: 'Bank OTP' } },
+    ]);
+    assert.deepEqual(await answer('value', { kind: 'value', entityId: 'sensor.garage_temperature' }), [garage]);
+    // No view at all, as an old relay would send: names only.
+    const closed = (await answer('none', undefined)) as Array<Record<string, unknown>>;
+    assert.equal(closed.some((s) => 'state' in s), false);
+    assert.equal(JSON.stringify(relay.inbox[0]).includes('492071'), false);
   } finally {
     client.stop();
     await relay.close();
@@ -275,18 +401,22 @@ test('a token inside a state that does leave is still cut out: a template sensor
   const { client, readiness } = makeClient(relay);
   try {
     client.start();
-    await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
-    const socket = relay.sockets[0]!;
-    send(socket, { type: 'agent:hello-ok', agentToken: 'token-1' });
-    await until(() => readiness.includes(true), 'the registration');
+    const socket = await registeredWith(relay, readiness, ['sensor.porch_snapshot_url']);
 
-    send(socket, { type: 'ha:request', requestId: 's1', method: 'GET', path: '/api/states' });
+    send(socket, {
+      type: 'ha:request',
+      requestId: 's1',
+      method: 'GET',
+      path: '/api/states',
+      view: { kind: 'runtime', entityIds: ['sensor.porch_snapshot_url'] },
+    });
     client.pushEvent({
       entity_id: 'sensor.porch_snapshot_url',
       new_state: snapshotUrl('tok-new'),
       old_state: snapshotUrl('tok-old'),
     });
-    await until(() => relay.inbox[0]!.length >= 3, 'the answer and the event');
+    await until(() => relay.inbox[0]!.some((m) => m['requestId'] === 's1'), 'the answer');
+    await until(() => relay.inbox[0]!.some((m) => m['type'] === 'ha:event'), 'the event');
 
     const wire = JSON.stringify(relay.inbox[0]);
     for (const token of ['tok-snapshot', 'tok-new', 'tok-old']) {
@@ -337,6 +467,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       agentToken: 'stale-token',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
+      agentCapabilities: ['bound-set'],
     });
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'invalid_token', message: 'Token agent invalide' });
 
@@ -347,6 +478,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
+      agentCapabilities: ['bound-set'],
     });
     assert.equal(existsSync(tokenFile), false);
     assert.deepEqual(gaveUp, []);
@@ -469,6 +601,7 @@ test('the Docker image says so in its hello, and words a refusal for a container
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'docker',
+      agentCapabilities: ['bound-set'],
     });
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'code_used', message: 'Pairing code already used' });
 
@@ -525,11 +658,13 @@ test('a credential that cannot be stored is reported, and the connection still c
     await until(() => (relay.inbox[0]?.length ?? 0) >= 1, 'the hello');
     assert.equal(relay.inbox[0]![0]!['mode'], 'pair');
     send(relay.sockets[0]!, { type: 'agent:hello-ok', agentToken: 'token-1' });
+    send(relay.sockets[0]!, { type: 'agent:bound-set', entityIds: ['light.kitchen'] });
+    send(relay.sockets[0]!, { type: 'ha:request', requestId: 'sync', method: 'GET', path: '/api/states', view: { kind: 'runtime', entityIds: [] } });
     await until(() => readiness.length === 1, 'ready');
+    await until(() => relay.inbox[0]!.some((m) => m['requestId'] === 'sync'), 'the set to apply');
 
     client.pushEvent({ entity_id: 'light.kitchen', new_state: { state: 'on' }, old_state: null });
-    await until(() => relay.inbox[0]!.length >= 2, 'the event');
-    assert.equal(relay.inbox[0]![1]!['type'], 'ha:event');
+    await until(() => relay.inbox[0]!.some((m) => m['type'] === 'ha:event'), 'the event');
     assert.deepEqual(gaveUp, []);
   } finally {
     client.stop();
