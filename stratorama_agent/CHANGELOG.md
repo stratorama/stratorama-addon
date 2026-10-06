@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.4.0 - Only what is on your plan leaves your home
+## 1.4.0
+
+**Only what is on your plan leaves your home**
 
 - The agent now forwards a state change only for the entities your plan uses: its devices,
   their readings, your doors' and windows' sensors, and the devices in your device library.
@@ -20,7 +22,9 @@
   2026-10-02. Against an older one (a `tunnel_url` / `TUNNEL_URL` of your own), it connects
   and forwards nothing: stay on 1.3.0 there.
 
-## 1.3.0 - Only what Stratorama shows leaves your home
+## 1.3.0
+
+**Only what Stratorama shows leaves your home**
 
 - The agent now sends the relay the states of the five domains Stratorama shows - `light`,
   `switch`, `cover`, `sensor` and `binary_sensor` - and nothing else, in state changes, in the
@@ -42,7 +46,9 @@
 - Stratorama's relay applies the same two rules to an agent that is not updated yet, so no
   browser receives any of it whichever version you run; updating keeps it inside your home.
 
-## 1.2.0 - Also runs without Home Assistant OS
+## 1.2.0
+
+**Also runs without Home Assistant OS**
 
 - New: the same agent as a standalone Docker image, `ghcr.io/stratorama/stratorama-agent`
   (amd64 and arm64), for Home Assistant Container, which cannot run apps. It is configured
@@ -59,7 +65,9 @@
 - A credential that cannot be saved is reported in the log, and no longer stops the events of
   the connection that just received it.
 
-## 1.1.0 - Notices, refuses, stops, and says its version
+## 1.1.0
+
+**Notices, refuses, stops, and says its version**
 
 - A dead connection is noticed. The relay pings every 30 seconds; a socket that has
   carried nothing for 90 seconds is closed and reopened. Until now a NAT that dropped the
@@ -78,7 +86,9 @@
 - Development outside Home Assistant: `HA_HTTP_URL` and `HA_WS_URL` point the agent at any
   instance; `npm test` runs the suite against an in-process relay.
 
-## 1.0.0 - First public release
+## 1.0.0
+
+**First public release**
 
 The relay itself is unchanged since 0.1.0; what changes is that a stranger can now
 install it and trust it.
@@ -91,7 +101,9 @@ install it and trust it.
 - Reproducible image: dependencies installed with `npm ci` from the committed lockfile.
 - Architectures stated where the reader is: amd64 and aarch64; armv7 was never published.
 
-## 0.1.0 - Initial release
+## 0.1.0
+
+**Initial release**
 
 - Outbound WebSocket tunnel to the Stratorama server.
 - One-time pairing via short code; long-lived agent token persisted in `/data/`.

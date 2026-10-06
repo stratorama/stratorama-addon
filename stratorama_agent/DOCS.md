@@ -18,9 +18,9 @@ from anywhere without exposing Home Assistant to the internet.
    Connection**, and press **Generate pairing code**. You get an 8-character code, valid for
    10 minutes.
 2. In this app's **Configuration** tab, paste the code into **Pairing code** and press
-   **Save**. Leave **Tunnel URL** at its default. Home Assistant confirms the save with nothing
-   more than a brief toast at the bottom of the screen (or asks to restart, if the app is
-   already running): no message is normal, the code is saved.
+   **Save**. Leave **Tunnel URL** at its default. Home Assistant shows no message after a
+   save, and none is needed: the code is saved (if the app is already running, Home Assistant
+   asks to restart it: press **Restart**).
 3. Back on the **Info** tab, **Start** the app. Within a few seconds the Connection panel in
    Stratorama shows **Connected**, and the small Home Assistant mark in the top-right corner of
    the plan turns green.
@@ -57,7 +57,7 @@ The full statement is in Stratorama's privacy policy: https://stratorama.app/pri
 
 ## Disconnecting
 
-In Stratorama, **Settings > Home Assistant > Connection > Disconnect Home Assistant** revokes
+In Stratorama, **Menu > Home Assistant > Connection > Disconnect Home Assistant** revokes
 the credential immediately: the connection drops within a second and the app cannot
 reconnect until it is paired again with a fresh code. Uninstalling the app removes its
 `/data` folder and the credential with it.
@@ -69,7 +69,7 @@ Home Assistant shows it as stopped with an error: nothing will change until the
 configuration does, so it does not keep knocking on the relay every minute.
 
 - **"Pairing refused: ..."** - the pairing code is unknown, already used, or older than 10
-  minutes. Generate a new one in Stratorama (Settings > Home Assistant > Connection), paste
+  minutes. Generate a new one in Stratorama (Menu > Home Assistant > Connection), paste
   it into Pairing code, save, then start the app.
 - **"The relay no longer accepts this agent's credential"** - somebody pressed Disconnect
   Home Assistant in Stratorama, or paired another Home Assistant to the same home. Same fix;

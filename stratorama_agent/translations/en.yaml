@@ -2,10 +2,11 @@ configuration:
   pairing_code:
     name: Pairing code
     description: >-
-      The 8-character code shown by Stratorama under Settings > Home Assistant > Connection >
-      "Generate pairing code". It is valid for 10 minutes and used once. Press Save (Home
-      Assistant only shows a brief toast), then start the app from the Info tab. After the
-      first successful start the app keeps its own credential, and you can clear this field.
+      The 8-character code shown by Stratorama under Menu > Home Assistant > Connection >
+      "Generate pairing code". It is valid for 10 minutes and used once. Press Save (no
+      message appears: the code is saved), then start the app from the Info tab; if it is
+      already running, Home Assistant offers to restart it instead. After the first
+      successful start the app keeps its own credential, and you can clear this field.
   tunnel_url:
     name: Tunnel URL
     description: >-

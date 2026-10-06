@@ -50,9 +50,9 @@ pulled, nothing is compiled on your machine).
    Connection**, and press **Generate pairing code**. The code is 8 characters and valid for
    10 minutes.
 2. In the app's **Configuration** tab, paste it into **Pairing code** and press **Save**.
-   Leave **Tunnel URL** at its default. Home Assistant confirms the save with nothing more than a
-   brief toast at the bottom of the screen (or asks to restart, if the app is already running):
-   no message is normal, the code is saved.
+   Leave **Tunnel URL** at its default. Home Assistant shows no message after a save, and none
+   is needed: the code is saved (if the app is already running, Home Assistant asks to restart
+   it: press **Restart**).
 3. Back on the **Info** tab, **Start** the app. Within seconds the Connection panel shows
    **Connected** and the small Home Assistant mark in the top-right corner of your plan turns green.
 
@@ -160,7 +160,7 @@ HTTPS works too (`https://...`). With a certificate the container does not trust
 ### Updating and disconnecting
 
 - Update: `docker compose pull && docker compose up -d`.
-- **Disconnect Home Assistant** in Stratorama (Settings > Home Assistant > Connection)
+- **Disconnect Home Assistant** in Stratorama (Menu > Home Assistant > Connection)
   revokes the agent's credential at once. `docker compose down -v` then removes the
   container and its volume, and deleting the token (or the `Stratorama` user) in Home
   Assistant withdraws its access there too.
@@ -301,7 +301,7 @@ ingress. It makes **outbound** connections only and opens no port.
 
 ## Disconnecting and revoking
 
-In Stratorama, **Settings > Home Assistant > Connection > Disconnect Home Assistant** revokes
+In Stratorama, **Menu > Home Assistant > Connection > Disconnect Home Assistant** revokes
 the app's credential at once: the connection drops within a second and the app cannot
 reconnect until it is paired again with a fresh code. Uninstalling the app deletes its
 `/data` folder, credential included. Pairing a second Home Assistant to the same home
