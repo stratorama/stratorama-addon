@@ -1,5 +1,7 @@
 # Stratorama - Agent (Home Assistant app)
 
+English | [Français](README.fr.md)
+
 The small Home Assistant app (formerly called an add-on) that links your Home Assistant to
 your [Stratorama](https://stratorama.app) account: your home on a floor plan, live and
 controllable from anywhere, without exposing Home Assistant to the internet. It opens

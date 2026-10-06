@@ -1,0 +1,16 @@
+configuration:
+  pairing_code:
+    name: Code d’appairage
+    description: >-
+      Le code de 8 caractères obtenu dans Stratorama, sous Menu > Home Assistant >
+      Connexion > « Générer un code d’appairage ». Il est valable 10 minutes et ne sert
+      qu’une fois. Appuyez sur « Enregistrer » : aucun message ne s’affiche, le code est
+      bien enregistré. Ensuite, dans l’onglet « Info », appuyez sur « Démarrer » ; si
+      l’agent tourne déjà, Home Assistant propose plutôt « Redémarrer Stratorama - Agent ? » :
+      acceptez. Après le premier démarrage réussi, l’agent garde son propre identifiant et vous
+      pouvez vider ce champ.
+  tunnel_url:
+    name: URL du tunnel
+    description: >-
+      L’adresse à laquelle l’agent se connecte (connexion sortante uniquement). Gardez la valeur
+      par défaut, sauf si vous faites tourner votre propre serveur de tunnel Stratorama.
