@@ -1,12 +1,12 @@
-# Stratorama — HA Agent Add-on
+# Stratorama - HA Agent Add-on
 
 Home Assistant add-on that opens a single outbound WebSocket to the Stratorama tunnel server and proxies HA REST calls + `state_changed` events through it. No port forwarding, no inbound exposure of HA. See [README.md](README.md) for setup and pairing flow.
 
 ## Commands
 
-- `npm run build` — `tsc` compile to `dist/`
-- `npm start` — run compiled add-on (`node dist/index.js`)
-- `npm run typecheck` — type check only
+- `npm run build` - `tsc` compile to `dist/`
+- `npm start` - run compiled add-on (`node dist/index.js`)
+- `npm run typecheck` - type check only
 - Local Docker build: `docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20 -t stratorama-agent:dev .`
 
 ## Architecture
@@ -14,7 +14,7 @@ Home Assistant add-on that opens a single outbound WebSocket to the Stratorama t
 - **Node 22+**, **TypeScript ESM** (`"type": "module"`)
 - **ws** for the outbound WebSocket to the tunnel server (`wss://.../agent`)
 - Talks to HA via `http://supervisor/core` using the auto-injected `SUPERVISOR_TOKEN` env var
-- Persists the long-lived `agent_token` in `/data/agent-token.json` after first pairing — `pairing_code` is one-shot
+- Persists the long-lived `agent_token` in `/data/agent-token.json` after first pairing - `pairing_code` is one-shot
 
 ## Project Structure
 
@@ -30,19 +30,20 @@ src/
 
 ## Conventions
 
-- **Defense-in-depth on `ha:request`** — every incoming WS frame is runtime-validated (`requestId`, `method` ∈ {GET,POST}, `path` starts with `/api/` and has no `..`) before being forwarded to HA. The JSON cast in TypeScript is *not* trusted.
+- **Defense-in-depth on `ha:request`** - every incoming WS frame is runtime-validated (`requestId`, `method` ∈ {GET,POST}, `path` starts with `/api/` and has no `..`) before being forwarded to HA. The JSON cast in TypeScript is *not* trusted.
 - **Only what Stratorama shows leaves, and without tokens** - every state sent to the relay (`pushEvent`, and every `ha:response` body) goes through `src/ha-domains.ts` (only `light`, `switch`, `cover`, `sensor`, `binary_sensor`; a new device type needs a new entry and a release) and then `src/ha-redact.ts` (drops `access_token`, `entity_picture` and `entity_picture_local` keys, cuts `token` / `access_token` / `authSig` out of URLs in one linear pass - no fixed-point loop, a hostile string must not go quadratic - the token out of `/api/hls/` and `/api/tts_proxy/` paths and `user:password@` out of URLs, bounded depth). A new path that sends states upstream must go through both. Both have twins in `../stratorama-tunnel/src/` applied on arrival, for agents that predate them: the relay file is its own header plus this file's code verbatim, and its spec is this test file verbatim behind an assert shim - change both, same cases.
 - **Bound-only (1.4.0)** - `pushEvent` forwards only entities in the relay's last `agent:bound-set` (null on a fresh connection = nothing; the set is applied in `#handleMessage` BEFORE any await, so a request sent after it is answered against it), and every `GET /api/states` answer is cut to the request's `view` by `src/ha-views.ts` (runtime / catalog / value; none or malformed = metadata only). Service-call answers are `body: null`. The hello names `AGENT_CAPABILITIES`; the relay sends the set only to an agent that names `bound-set`. `ha-views.ts` has a twin in the tunnel too.
 - **Wire types** in `src/types.ts` must stay synced with `../stratorama-tunnel/src/types.ts`
-- **Outbound-only** — the add-on never opens an inbound port
+- **Outbound-only** - the add-on never opens an inbound port
+- **Docs in two languages (1.5.0)** - `README.md` / `README.fr.md`, `stratorama_agent/DOCS.md` (the English, then its French version, announced on its first line) and `translations/en.yaml` / `fr.yaml`: a change to one is made to its twin in the same commit. Log lines and the CHANGELOG stay English; the French docs quote a log line as printed, then explain it. French names Home Assistant's menus as its shipped French translation does (read the PyPI `home-assistant-frontend` wheel's `fr`, never from memory) and Stratorama's as its French interface does (Menu > Home Assistant > Connexion). The Supervisor reads these files from the repository, not from the image (the Builder ignores them): an installed agent picks up a `translations/` change only with its next version.
 
 ## Sibling repos
 
 Stratorama is split across 3 repos that interact at runtime:
 
-- **`../stratorama-app`** (`C:/Projects/stratorama-app`) — Angular SPA where the user generates the pairing code
-- **`../stratorama-tunnel`** (`C:/Projects/stratorama-tunnel`) — the relay this add-on connects to
-- **this repo** — the HA-side agent
+- **`../stratorama-app`** (`C:/Projects/stratorama-app`) - Angular SPA where the user generates the pairing code
+- **`../stratorama-tunnel`** (`C:/Projects/stratorama-tunnel`) - the relay this add-on connects to
+- **this repo** - the HA-side agent
 
 Runtime data flow:
 

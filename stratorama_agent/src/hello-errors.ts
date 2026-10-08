@@ -21,7 +21,7 @@ export interface HelloErrorReaction {
 }
 
 const GENERATE =
-  'in Stratorama (Settings > Home Assistant > Connection > Generate pairing code)';
+  'in Stratorama (Menu > Home Assistant > Connection > Generate pairing code)';
 
 /**
  * Where a pairing code goes, which is the one thing that differs between the two ways this

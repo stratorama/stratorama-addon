@@ -79,3 +79,10 @@ test('the first-start line names the setting for each runtime', () => {
   assert.match(noCredentialLine('docker'), /docker compose up -d/);
   assert.match(newCodeInstruction('addon'), /start the app again/);
 });
+
+test('every line names the menu of Stratorama as it is: its button is Menu, not Settings', () => {
+  for (const line of [newCodeInstruction('addon'), newCodeInstruction('docker'), noCredentialLine('addon'), noCredentialLine('docker')]) {
+    assert.ok(line.includes('in Stratorama (Menu > Home Assistant > Connection > Generate pairing code)'), line);
+    assert.doesNotMatch(line, /Settings >/);
+  }
+});
