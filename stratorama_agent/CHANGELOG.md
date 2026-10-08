@@ -4,14 +4,13 @@
 
 **In French, for a Home Assistant that speaks French**
 
-- The two options of the Configuration tab, Pairing code and Tunnel URL, have their French
-  labels and help texts: Home Assistant shows them in French when your profile's language is
-  French.
+- The Configuration tab's two options, Pairing code and Tunnel URL, now have French labels and
+  help texts, which Home Assistant shows when your profile's language is French.
 - The Documentation tab carries a French version after the English one, announced on its
   first line. The guide on GitHub has a French twin, `README.fr.md`, which Stratorama links to
   when its interface is in French.
-- The log line that says where to get a new pairing code names Stratorama's menu as it is:
-  Menu > Home Assistant > Connection > Generate pairing code. It still said Settings.
+- The log line that says where to get a new pairing code now names Stratorama's menu as it is,
+  Menu > Home Assistant > Connection > Generate pairing code, where it used to say Settings.
 - The log stays in English; the French documentation quotes its lines as printed.
 - Nothing else changes: the same calls to Home Assistant, the same data sent to the relay.
 

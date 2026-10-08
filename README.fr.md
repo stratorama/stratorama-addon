@@ -226,7 +226,7 @@ Home Assistant et réglez-y une fois pour toutes la plage de confort d’un capt
 un élément sur le plan propose alors d’abord cette courte liste, sous **Vos appareils**, avec
 les noms que vous avez donnés.
 
-- Appuyez sur **Ajouter un appareil**, puis choisissez l’entité Home Assistant&nbsp;: l’appareil est créé
+- Appuyez sur **Ajouter**, à côté du titre **Appareils HA**, puis choisissez l’entité Home Assistant&nbsp;: l’appareil est créé
   sous le nom que Home Assistant donne à l’entité, et vous pouvez le renommer aussitôt. Un
   capteur d’humidité, ou un capteur de température en degrés Celsius, arrive avec une plage de
   confort usuelle déjà remplie.
@@ -283,8 +283,8 @@ pièce** a changé.
   avec elle. Un mur qu’elle partage avec une pièce voisine reste&nbsp;: la voisine en a encore
   besoin.
 - L’icône crayon d’un étage, dans la liste **Étages**, règle ses rôles. **Étage par défaut**
-  (l’étoile de la liste)&nbsp;: la présentation s’ouvre sur cet étage. **Rez-de-chaussée** (la
-  maison)&nbsp;: chaque étage au-dessus est dessiné sur un léger contour des murs du dessous, si
+  (l’étoile de la liste)&nbsp;: la présentation s’ouvre sur cet étage. **Rez-de-chaussée** (l’icône
+  de maison)&nbsp;: chaque étage au-dessus est dessiné sur un léger contour des murs du dessous, si
   bien qu’un étage supérieur peut se tracer sur ce qui le porte&nbsp;; rien n’est tracé sous le
   rez-de-chaussée. Si aucun n’est défini, l’étage du bas compte comme rez-de-chaussée.
 - **Supprimer l’étage** (tant que la maison en a plus d’un) vous demande de confirmer&nbsp;: ses

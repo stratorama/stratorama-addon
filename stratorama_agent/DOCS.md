@@ -153,7 +153,7 @@ resservira qu’après une déconnexion.
   en sortir&nbsp;: lumières, interrupteurs, volets, capteurs et capteurs binaires. Les personnes
   et la localisation des appareils (qui est à la maison, où se trouve chaque téléphone), les
   caméras et les lecteurs multimédias n’en sortent donc jamais. Quand une personne pouvant
-  modifier le plan ouvre le sélecteur d’appareils de Stratorama, les autres lumières,
+  modifier le plan ouvre le sélecteur d’entités de Stratorama, les autres lumières,
   interrupteurs, volets et capteurs y sont listés **par nom, type et unité seulement**, sans
   valeur&nbsp;; **Voir la valeur** lit celle de l’un d’eux, une seule fois. Ce que l’agent transmet traverse le
   serveur de Stratorama **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque
