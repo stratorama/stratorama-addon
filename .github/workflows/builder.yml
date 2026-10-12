@@ -12,10 +12,11 @@ name: Builder
 on:
   push:
     branches: [main]
-    # Text the Supervisor reads from the repository itself, never from the image: a change
-    # there must not rebuild and re-push the version tag.
+    # Text that is never in the image - what the Supervisor reads from the repository itself, and
+    # the translated guides (README.fr.md): a change there must not rebuild and re-push the version tag.
     paths-ignore:
       - '**/README.md'
+      - '**/README.*.md'
       - '**/CHANGELOG.md'
       - '**/DOCS.md'
       - '**/translations/**'

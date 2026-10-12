@@ -47,7 +47,7 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
   other lights, switches, covers and sensors are listed **by name, kind and unit only**, with
   no value; pressing Show value reads one of them, once. What it does forward travels through
   Stratorama's server **in memory only**: it is never written to disk there, and each browser
-  or wall panel is only sent the entities that are actually bound to its plan.
+  or wall tablet is only sent the entities bound to the parts of the plan it may see.
 - It never reads your history or logbook, never touches automations, and never sends
   Home Assistant credentials anywhere: the Supervisor gives the app a local token that
   stays inside the app. The tokens Home Assistant itself puts in some states (an
@@ -157,7 +157,7 @@ resservira qu’après une déconnexion.
   interrupteurs, volets et capteurs y sont listés **par nom, type et unité seulement**, sans
   valeur&nbsp;; **Voir la valeur** lit celle de l’un d’eux, une seule fois. Ce que l’agent transmet traverse le
   serveur de Stratorama **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque
-  navigateur ou tablette murale ne reçoit que les entités réellement liées à son plan.
+  navigateur ou tablette murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir.
 - Il ne lit jamais l’**Historique** ni l’**Activité** de Home Assistant, ne touche jamais aux
   automatisations et n’envoie jamais d’identifiants Home Assistant nulle part&nbsp;: le
   Supervisor donne à l’agent un jeton local qui ne quitte pas l’agent. Les jetons que Home

@@ -313,7 +313,7 @@ vous. Un capteur que vous ne placez pas sur le plan (l’adresse géocodée d’
 à usage unique) sort comme un nom dans la liste du sélecteur, jamais comme une valeur, sauf si
 une personne pouvant modifier le plan la demande. Les changements d’état traversent le relais
 **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque navigateur ou tablette
-murale ne reçoit que les entités liées à son plan. L’agent ne lit jamais l’**Historique** ni
+murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir. L’agent ne lit jamais l’**Historique** ni
 l’**Activité** de Home Assistant, ne touche jamais aux automatisations et n’envoie jamais
 d’identifiants Home Assistant nulle part&nbsp;: le Supervisor lui remet un jeton local qui ne
 quitte pas l’agent. Home Assistant place aussi ses propres jetons dans certains états (un

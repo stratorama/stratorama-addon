@@ -276,8 +276,8 @@ leave ([`src/ha-domains.ts`](stratorama_agent/src/ha-domains.ts)): `person` and
 `device_tracker` entities, cameras, media players and every other domain stay in your home. A
 sensor you do not put on the plan - a phone's geocoded address, a one-time code - leaves as a
 name in the picker's list, never as a value unless an editor asks. State changes cross the relay **in memory only**:
-nothing is written to disk there, and each browser or wall panel is only sent the entities
-bound to its plan. The app never reads your history or logbook, never touches automations,
+nothing is written to disk there, and each browser or wall tablet is only sent the entities
+bound to the parts of the plan it may see. The app never reads your history or logbook, never touches automations,
 and never sends Home Assistant credentials anywhere: the Supervisor hands it a local token
 that stays inside the app. Home Assistant also puts tokens of its own in some states - an
 `access_token` attribute, the `?token=` of a camera's picture link, a stream token in an
