@@ -351,7 +351,7 @@ The app lives in `./stratorama_agent/` (the Supervisor scans sub-folders for a
 cd stratorama_agent
 npm ci
 npm run typecheck
-docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20 -t stratorama-agent:dev .
+docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.24 -t stratorama-agent:dev .
 docker build -f Dockerfile.standalone -t stratorama-agent-standalone:dev .
 ```
 
@@ -361,8 +361,9 @@ image sets `AGENT_RUNTIME=docker`, which is what makes the agent word its instru
 container and stay up on a refusal instead of exiting (`src/config.ts`, `src/index.ts`).
 
 `npm test` runs the suite: the client against an in-process relay and a fake Home Assistant,
-the configuration matrix of both runtimes, and the pin that `config.yaml` (the version the
-store shows) and `package.json` (the version the agent reports) carry the same number.
+the configuration matrix of both runtimes, the pin that `config.yaml` (the version the store
+shows) and `package.json` (the version the agent reports) carry the same number, and the one
+that both images run the same Node release, on the Alpine branch of the Home Assistant base.
 
 Outside Home Assistant, the agent runs against any instance: set `HA_URL` to it
 (`http://ha.local:8123`), `HA_TOKEN` to a long-lived access token from your profile page,

@@ -1,10 +1,11 @@
 # Per-arch base image used to substitute ARG BUILD_FROM in Dockerfile.
-# Pin a specific version so rebuilds are reproducible.
+# Pin a specific version so rebuilds are reproducible. The Alpine branch is also the one
+# of NODE_IMAGE in Dockerfile (test/images.test.ts): change them together.
 #
 # Only the two architectures config.yaml declares. armv7 was dropped before
 # 1.0.0: QEMU emulation of `npm install` on the free GitHub runners exceeded
 # the six-hour job limit, and nothing published for it - so listing it here
 # only promised an image that did not exist.
 build_from:
-  aarch64: ghcr.io/home-assistant/aarch64-base:3.20
-  amd64:   ghcr.io/home-assistant/amd64-base:3.20
+  aarch64: ghcr.io/home-assistant/aarch64-base:3.24
+  amd64:   ghcr.io/home-assistant/amd64-base:3.24

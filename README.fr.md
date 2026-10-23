@@ -391,7 +391,7 @@ sous-dossiers)&nbsp;; le `repository.yaml` à la racine fait de ce dépôt un d�
 cd stratorama_agent
 npm ci
 npm run typecheck
-docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.20 -t stratorama-agent:dev .
+docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.24 -t stratorama-agent:dev .
 docker build -f Dockerfile.standalone -t stratorama-agent-standalone:dev .
 ```
 
@@ -402,9 +402,10 @@ fait que l’agent rédige ses consignes pour un conteneur et reste démarré ap
 de s’arrêter (`src/config.ts`, `src/index.ts`).
 
 `npm test` lance la suite de tests&nbsp;: le client face à un relais en mémoire et à un faux Home
-Assistant, la matrice de configuration des deux modes d’exécution, et la vérification que
+Assistant, la matrice de configuration des deux modes d’exécution, la vérification que
 `config.yaml` (la version qu’affiche le magasin) et `package.json` (la version que l’agent
-annonce) portent le même numéro.
+annonce) portent le même numéro, et celle que les deux images font tourner la même version de
+Node, sur la branche Alpine de l’image de base de Home Assistant.
 
 Hors de Home Assistant, l’agent tourne contre n’importe quelle instance&nbsp;: mettez dans
 `HA_URL` son adresse (`http://ha.local:8123`), dans `HA_TOKEN` un jeton d’accès longue durée

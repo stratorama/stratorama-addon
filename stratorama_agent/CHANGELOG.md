@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.1
+
+**A supported Node.js, with the October 2026 security fixes**
+
+- Both images now run Node.js 22.23.4, the security release of 2026-10-20. The Home Assistant
+  app ran Node.js 20.15.1, the build Alpine Linux 3.20 shipped in July 2024: Node.js 20 has had
+  no security fixes since 2026-04-30, and that build missed two years of them. The standalone
+  Docker image ran Node.js 22.23.3, the one current when it was last built.
+- Node.js now comes from the official Node.js image, pinned to its release, rather than from
+  Alpine's package, which lags behind Node's security releases and cannot be pinned. The app
+  is built on Home Assistant's Alpine 3.24 base (it was 3.20) and no longer carries npm, which
+  nothing ran once the image was built.
+- The agent still opens no port: what it reads comes from Stratorama's relay and from your
+  Home Assistant. Nothing else changes: the same calls to Home Assistant, the same data sent to
+  the relay.
+
 ## 1.5.0
 
 **In French, for a Home Assistant that speaks French**
