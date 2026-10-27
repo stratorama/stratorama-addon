@@ -12,7 +12,7 @@ Home Assistant add-on that opens a single outbound WebSocket to the Stratorama t
 ## Two apps in this repository
 
 - **`stratorama_agent/`**, Stratorama - Agent (MIT): everything below.
-- **`stratorama/`**, Stratorama, local mode (design `../stratorama-app/docs/design/local-mode/README.md`): Stratorama inside Home Assistant, its plan kept in the home. **This folder holds only what Home Assistant reads** (`config.yaml`, `DOCS.md` in English then French, the changelog, icon and logo): its code is closed (the owner's decision of 2026-10-27), so its image, `ghcr.io/stratorama/{arch}-stratorama`, is built and published from `stratorama-tunnel` (`local-image/`), and holds this repository's agent unchanged. No Dockerfile here, and `builder.yml` builds `stratorama_agent/` alone.
+- **`stratorama/`**, Stratorama, local mode (design `../stratorama-app/docs/design/local-mode/README.md`): Stratorama inside Home Assistant, its plan kept in the home. **This folder holds only what Home Assistant reads** (`config.yaml`, `DOCS.md` in English then French, the changelog, icon and logo): its code is closed (the owner's decision of 2026-10-27), so its image, `ghcr.io/stratorama/{arch}-stratorama`, is built and published from `stratorama-tunnel` (`local-image/`), and holds this repository's agent unchanged. No Dockerfile here, and `builder.yml` builds `stratorama_agent/` alone. **A release is the image first** (`stratorama-tunnel/.github/workflows/local-image.yml`, by hand), **then this folder pushed with the same version**: never push `stratorama/` with a version whose image is not published, or the store lists an app that cannot be installed.
 
 ## Architecture
 
