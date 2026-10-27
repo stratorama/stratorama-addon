@@ -9,6 +9,11 @@ Home Assistant add-on that opens a single outbound WebSocket to the Stratorama t
 - `npm run typecheck` - type check only
 - Local Docker build: `docker build --build-arg BUILD_FROM=ghcr.io/home-assistant/amd64-base:3.24 -t stratorama-agent:dev .`
 
+## Two apps in this repository
+
+- **`stratorama_agent/`**, Stratorama - Agent (MIT): everything below.
+- **`stratorama/`**, Stratorama, local mode (design `../stratorama-app/docs/design/local-mode/README.md`): Stratorama inside Home Assistant, its plan kept in the home. **This folder holds only what Home Assistant reads** (`config.yaml`, `DOCS.md` in English then French, the changelog, icon and logo): its code is closed (the owner's decision of 2026-10-27), so its image, `ghcr.io/stratorama/{arch}-stratorama`, is built and published from `stratorama-tunnel` (`local-image/`), and holds this repository's agent unchanged. No Dockerfile here, and `builder.yml` builds `stratorama_agent/` alone.
+
 ## Architecture
 
 - **Node 22** (the release pinned in both Dockerfiles, see Conventions), **TypeScript ESM** (`"type": "module"`)

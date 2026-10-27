@@ -14,12 +14,15 @@ on:
     branches: [main]
     # Text that is never in the image - what the Supervisor reads from the repository itself, and
     # the translated guides (README.fr.md): a change there must not rebuild and re-push the version tag.
+    # And the local mode app's folder, stratorama/: nothing in it is the agent's, and its image is
+    # built and published from stratorama-tunnel.
     paths-ignore:
       - '**/README.md'
       - '**/README.*.md'
       - '**/CHANGELOG.md'
       - '**/DOCS.md'
       - '**/translations/**'
+      - 'stratorama/**'
   pull_request:
   workflow_dispatch:
 
