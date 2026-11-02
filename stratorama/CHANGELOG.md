@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- No more dark band along the bottom of the screen without the plan alone either: Stratorama keeps
+  clear of the screen's edges itself, whether Home Assistant's sidebar shows or not.
+- Once the controls have faded, the plan rests at the centre of the screen.
+
 ## 0.1.1
 
 - With the plan alone on a tablet, no more dark band along the bottom of the screen: Home Assistant
