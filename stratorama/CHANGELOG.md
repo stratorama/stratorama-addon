@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- The plan now runs to the very edges of the screen, and only the controls keep clear of them: 0.1.1
+  and 0.1.2 still stopped the plan above the bottom edge, so the dark band stayed.
+
 ## 0.1.2
 
 - No more dark band along the bottom of the screen without the plan alone either: Stratorama keeps
