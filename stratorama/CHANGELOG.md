@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- A screen left open on Stratorama now picks up a new version by itself: once nobody has touched it
+  for 5 minutes, it reloads onto it. Reload each screen by hand once, to this version; the next
+  ones reach it alone.
+
 ## 0.1.3
 
 - The plan now runs to the very edges of the screen, and only the controls keep clear of them: 0.1.1
