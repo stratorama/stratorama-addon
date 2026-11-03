@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5
+
+- The owner can now remove a person, in Home settings > People: they can no longer open Stratorama,
+  even from Home Assistant's sidebar, until the owner lets them back in from the list of people
+  removed, just below.
+- The device picker shows every device's value on its right, so "Show value" is gone, and lists the
+  devices of the element's room first.
+- A sensor that reports a date or a time shows it in Stratorama's language.
+
 ## 0.1.4
 
 - A screen left open on Stratorama now picks up a new version by itself: once nobody has touched it

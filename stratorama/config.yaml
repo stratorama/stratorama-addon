@@ -1,5 +1,5 @@
 name: "Stratorama"
-version: "0.1.4"
+version: "0.1.5"
 slug: "stratorama"
 description: "Your home's floor plan, with its devices on it, inside Home Assistant: the drawing and everything it shows stay in your home."
 url: "https://github.com/stratorama/stratorama-addon"
