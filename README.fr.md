@@ -223,8 +223,10 @@ dont l’agent tourne.
 Le menu > **Home Assistant > Appareils** ouvre votre bibliothèque d’appareils (en mode édition,
 **Gérer les appareils**, dans le sélecteur d’entités, l’ouvre aussi). Nommez-y chaque appareil
 Home Assistant et réglez-y une fois pour toutes la plage de confort d’un capteur&nbsp;: placer
-un élément sur le plan propose alors d’abord cette courte liste, sous **Vos appareils**, avec
-les noms que vous avez donnés.
+un élément sur le plan propose alors cette courte liste, sous **Vos appareils**, avec les noms
+que vous avez donnés, juste après les appareils dont le nom contient la pièce de l’élément. Le
+sélecteur ne liste que ce qui n’est pas encore sur le plan, chacun avec sa valeur actuelle&nbsp;:
+un appareil déjà placé n’est pas proposé deux fois.
 
 - Appuyez sur **Ajouter**, à côté du titre **Appareils HA**, puis choisissez l’entité Home Assistant&nbsp;: l’appareil est créé
   sous le nom que Home Assistant donne à l’entité, et vous pouvez le renommer aussitôt. Un
@@ -294,9 +296,9 @@ pièce** a changé.
 
 | Sens | Quoi | Quand |
 |---|---|---|
-| Relais -> Home Assistant | `GET /api/states` (l’instantané des entités quand un plan se charge, quand le sélecteur d’entités s’ouvre ou quand on appuie sur **Voir la valeur** dans le sélecteur&nbsp;; l’agent répond selon ce que précise la requête du relais, voir plus bas) et les appels de service pour les appareils de votre plan&nbsp;: services `light`, `switch` et `cover` seulement (allumer / éteindre, luminosité et couleur, ouvrir / fermer / arrêter / position). L’agent refuse lui-même tout autre appel, d’où qu’il vienne&nbsp;: la liste exacte est dans [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | à la demande |
+| Relais -> Home Assistant | `GET /api/states` (l’instantané des entités quand un plan se charge ou quand le sélecteur d’entités s’ouvre&nbsp;; l’agent répond selon ce que précise la requête du relais, voir plus bas) et les appels de service pour les appareils de votre plan&nbsp;: services `light`, `switch` et `cover` seulement (allumer / éteindre, luminosité et couleur, ouvrir / fermer / arrêter / position). L’agent refuse lui-même tout autre appel, d’où qu’il vienne&nbsp;: la liste exacte est dans [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | à la demande |
 | Home Assistant -> relais | les événements `state_changed` des entités de votre plan (ses appareils, leurs relevés, les capteurs de vos portes, votre bibliothèque d’appareils), des cinq domaines ci-dessous et sans les jetons ci-dessous&nbsp;; rien d’autre | en continu |
-| Home Assistant -> relais, sur demande | la liste des entités pour le sélecteur&nbsp;: les entités de votre plan en entier, toutes les autres lumières, interrupteurs, volets et capteurs par nom, type et unité seulement&nbsp;; la valeur d’une entité quand une personne pouvant modifier le plan appuie sur **Voir la valeur** | à l’ouverture du sélecteur |
+| Home Assistant -> relais, sur demande | la liste des entités pour le sélecteur, en deux réponses&nbsp;: toutes les lumières, interrupteurs, volets et capteurs par nom, type et unité, puis ceux qui ne sont pas sur votre plan en entier, avec leur état actuel | quand une personne pouvant modifier tout le plan ouvre le sélecteur |
 
 Depuis la version 1.4.0, l’agent ne transmet un changement d’état que pour les entités de votre
 plan, que le relais de Stratorama lui indique après chaque connexion et chaque fois que vous
@@ -304,14 +306,18 @@ liez ou dissociez quelque chose&nbsp;; tant que le relais ne l’a pas fait, l�
 rien. Chaque réponse à `GET /api/states` est réduite à ce que précise la requête du relais
 ([`src/ha-views.ts`](stratorama_agent/src/ha-views.ts))&nbsp;: l’instantané du plan aux entités
 que la personne ou la tablette qui demande a le droit de voir, la liste du sélecteur aux noms,
-types et unités pour tout ce qui n’est pas sur votre plan, **Voir la valeur** à une seule
-entité. La réponse à un appel de service se limite à son statut. Depuis la version 1.3.0, et par
+types et unités de toutes les lumières, interrupteurs, volets et capteurs, puis aux entités qui
+ne sont pas sur votre plan, en entier. La réponse à un appel de service se limite à son statut. Depuis la version 1.3.0, et par
 tous les chemins, seuls les cinq domaines que Stratorama affiche peuvent sortir
 ([`src/ha-domains.ts`](stratorama_agent/src/ha-domains.ts))&nbsp;: les entités `person` et
 `device_tracker`, les caméras, les lecteurs multimédias et tous les autres domaines restent chez
 vous. Un capteur que vous ne placez pas sur le plan (l’adresse géocodée d’un téléphone, un code
-à usage unique) sort comme un nom dans la liste du sélecteur, jamais comme une valeur, sauf si
-une personne pouvant modifier le plan la demande. Les changements d’état traversent le relais
+à usage unique) sort avec sa valeur et ses attributs (cette adresse avec ses coordonnées) quand
+une personne pouvant modifier tout le plan ouvre le sélecteur, pour le navigateur de cette
+personne, et n’est conservé nulle part&nbsp;; un appareil déjà sur le plan ne figure pas dans
+cette liste, et Stratorama ne le laisse pas lier une seconde fois, sauf le capteur d’une porte ou
+d’une fenêtre, que la duplication d’un étage copie avec cette porte ou cette fenêtre. Les
+changements d’état traversent le relais
 **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque navigateur ou tablette
 murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir. L’agent ne lit jamais l’**Historique** ni
 l’**Activité** de Home Assistant, ne touche jamais aux automatisations et n’envoie jamais

@@ -40,14 +40,17 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
   your plan**: lights, switches and covers - turn on, turn off, set brightness and colour,
   open, close, stop, set position. The app itself refuses any other call, whoever asks.
 - It also forwards the **state changes of the entities on your plan** - its devices, their
-  readings, your doors' sensors and your device library - and of nothing else: everything not
-  on your plan stays in your home, and only lights, switches, covers, sensors and binary
-  sensors ever leave it, so people and device trackers (who is home, where each phone is),
-  cameras and media players never do. When an editor opens Stratorama's device picker, the
-  other lights, switches, covers and sensors are listed **by name, kind and unit only**, with
-  no value; pressing Show value reads one of them, once. What it does forward travels through
-  Stratorama's server **in memory only**: it is never written to disk there, and each browser
-  or wall tablet is only sent the entities bound to the parts of the plan it may see.
+  readings, your doors' sensors and your device library - and of nothing else, and only
+  lights, switches, covers, sensors and binary sensors ever leave your home, so people and
+  device trackers, cameras and media players never do.
+  When someone who may edit the whole plan opens Stratorama's device picker, the lights,
+  switches, covers and sensors that are **not on your plan** are sent **with their current
+  state and attributes** to that person's browser, a sensor you never placed included, such as
+  a phone's geocoded address with its coordinates; a device already on the plan is not in that
+  list. What it does forward
+  travels through Stratorama's server **in memory only**: it is never written to disk there,
+  and each browser or wall tablet is only sent the entities bound to the parts of the plan it
+  may see, apart from that picker list.
 - It never reads your history or logbook, never touches automations, and never sends
   Home Assistant credentials anywhere: the Supervisor gives the app a local token that
   stays inside the app. The tokens Home Assistant itself puts in some states (an
@@ -148,16 +151,18 @@ resservira qu’après une déconnexion.
   et la couleur, ouvrir, fermer, arrêter, régler la position). L’agent refuse lui-même tout
   autre appel, d’où qu’il vienne.
 - Il transmet aussi les **changements d’état des entités de votre plan** (ses appareils, leurs
-  relevés, les capteurs de vos portes et votre bibliothèque d’appareils), et rien d’autre&nbsp;:
-  tout ce qui n’est pas sur votre plan reste chez vous, et seuls cinq types d’entités peuvent
-  en sortir&nbsp;: lumières, interrupteurs, volets, capteurs et capteurs binaires. Les personnes
-  et la localisation des appareils (qui est à la maison, où se trouve chaque téléphone), les
+  relevés, les capteurs de vos portes et votre bibliothèque d’appareils), et rien d’autre, et
+  seuls cinq types d’entités peuvent sortir de chez vous&nbsp;: lumières, interrupteurs, volets,
+  capteurs et capteurs binaires. Les personnes et les traceurs d’appareils de Home Assistant, les
   caméras et les lecteurs multimédias n’en sortent donc jamais. Quand une personne pouvant
-  modifier le plan ouvre le sélecteur d’entités de Stratorama, les autres lumières,
-  interrupteurs, volets et capteurs y sont listés **par nom, type et unité seulement**, sans
-  valeur&nbsp;; **Voir la valeur** lit celle de l’un d’eux, une seule fois. Ce que l’agent transmet traverse le
-  serveur de Stratorama **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque
-  navigateur ou tablette murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir.
+  modifier tout le plan ouvre le sélecteur d’entités de Stratorama, les lumières, interrupteurs,
+  volets et capteurs qui **ne sont pas sur votre plan** sont envoyés **avec leur état actuel et
+  leurs attributs** au navigateur de cette personne, y compris un capteur que vous n’avez jamais
+  placé, comme l’adresse géocodée d’un téléphone avec ses coordonnées&nbsp;; un appareil déjà sur
+  le plan ne figure pas dans cette liste. Ce que l’agent transmet traverse le serveur de Stratorama
+  **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque navigateur ou tablette
+  murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir, en dehors de
+  cette liste du sélecteur.
 - Il ne lit jamais l’**Historique** ni l’**Activité** de Home Assistant, ne touche jamais aux
   automatisations et n’envoie jamais d’identifiants Home Assistant nulle part&nbsp;: le
   Supervisor donne à l’agent un jeton local qui ne quitte pas l’agent. Les jetons que Home

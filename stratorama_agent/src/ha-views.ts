@@ -5,13 +5,15 @@
  * full - so an answer never depends on a set pushed earlier arriving first, and the one call the
  * agent makes to Home Assistant stays the same (`GET /api/states`, ha-allowlist.ts unchanged):
  *
- *  - `runtime`  the plan's live picture: ONLY the listed entities (the requester's readable ones),
- *               each with its full state;
- *  - `catalog`  the device picker: every entity, the listed ones (bound to the plan) in full and
- *               all the others as metadata only - their id, name, class and unit, no state - so
- *               a TOTP code, a HomeKit setup code or a notification's text never leaves the home
- *               just because an editor opened a list;
- *  - `value`    the picker's "Show value": that ONE entity, in full, at an editor's request.
+ *  - `runtime`  ONLY the listed entities, each with its full state: the plan's live picture (the
+ *               requester's readable ones) and, since the relay's sensor picker (2026-11-03), the
+ *               device picker's rows (on the hosted relay the entities the plan does not place, in
+ *               local mode every one);
+ *  - `catalog`  every entity, the listed ones in full and all the others as metadata only - their
+ *               id, name, class and unit, no state. The device picker asks it with nothing listed,
+ *               to learn the ids it then names in a runtime view;
+ *  - `value`    that ONE entity, in full. It served the picker's "Show value" until 2026-11-03; no
+ *               relay route asks it any more, and it stays because a relay may still send it.
  *
  * No view, or a malformed one, is a catalog with nothing listed: every entity as metadata only.
  * Failing closed costs at most a value on screen; failing open would cost the whole house.

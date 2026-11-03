@@ -347,7 +347,7 @@ test('a new connection starts with no set: the last one\'s names are not reused 
   }
 });
 
-test('the snapshot carries what the view asks for: the picker gets names, a value only on request', async () => {
+test('the snapshot carries what the view asks for: names from a catalog, in full only what a view lists', async () => {
   const lamp = { entity_id: 'light.kitchen', state: 'on', attributes: { friendly_name: 'Kitchen' } };
   const garage = {
     entity_id: 'sensor.garage_temperature',
