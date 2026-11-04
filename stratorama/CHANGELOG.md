@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7
+
+- Import a home: in Home settings > General > Plan, the owner can replace this home's plan with a
+  file exported from Stratorama (Account > Your data > Export as JSON), from stratorama.app for
+  instance. The home keeps its name and its people.
+- Versions: the plan an import or a going back replaces is kept there, the last ten, each to
+  download or to go back to. Ordinary edits make none.
+
 ## 0.1.6
 
 - Take it online: in Home settings > General, the owner can now put this home on stratorama.app as
