@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6
+
+- Take it online: in Home settings > General, the owner can now put this home on stratorama.app as
+  well, with a pairing code from an account there whose home has no plan yet. The plan is copied
+  there once and Home Assistant connects to it by itself; from then on the two plans are separate.
+  Nothing reaches stratorama.app unless the owner does this.
+
 ## 0.1.5
 
 - The owner can now remove a person, in Home settings > People: they can no longer open Stratorama,
