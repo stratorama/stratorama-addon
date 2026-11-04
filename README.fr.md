@@ -18,6 +18,13 @@ un navigateur.
 
 Open source, sous licence MIT. Images pour **amd64** et **aarch64**.
 
+**Aussi dans ce dépôt&nbsp;: Stratorama lui-même, dans Home Assistant** (expérimental). L’application
+**Stratorama** fait tourner le plan dans votre Home Assistant, ouverte depuis sa barre latérale,
+sans compte et sans que rien ne sorte de chez vous. Elle demande Home Assistant OS, et le même agent
+y est intégré. Contrairement à l’agent, son code n’est pas open source&nbsp;: son dossier ici
+contient ce que lit Home Assistant, et son image est construite ailleurs. Sa documentation, en
+anglais et en français&nbsp;: [stratorama/DOCS.md](stratorama/DOCS.md#stratorama-français).
+
 ## Prérequis
 
 - **Home Assistant OS**&nbsp;: installez l’application Stratorama - Agent comme indiqué ci-dessous

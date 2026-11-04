@@ -17,6 +17,13 @@ no public URL, no long-lived token handed to a browser.
 
 Open source, MIT licence. Images for **amd64** and **aarch64**.
 
+**Also in this repository: Stratorama itself, inside Home Assistant** (experimental). The app called
+**Stratorama** runs the plan in your Home Assistant, opened from its sidebar, with no account and
+nothing leaving your home. It needs Home Assistant OS, and the same agent is built into it. Unlike
+the agent, its code is not open source: its folder here holds what Home Assistant reads, and its
+image is built elsewhere. Its documentation, in English and French:
+[stratorama/DOCS.md](stratorama/DOCS.md).
+
 ## Requirements
 
 - **Home Assistant OS**: install the Home Assistant app below (apps need the Supervisor,
