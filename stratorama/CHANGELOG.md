@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.8
+
+- Import / Export: Home settings has a section of its own for the home as a file, the owner's
+  alone: Export as JSON (no longer in Account, where every person of the home had it), Import a
+  home file and the Versions, which were in General.
+- Sync with stratorama.app: with Household there, this home can follow its plan on stratorama.app,
+  in Home settings > General > Sync, with the code of a wall tablet of that home. Change the plan
+  there, and it changes here within 5 minutes. While it is on, everybody here sees the plan and
+  controls its devices as that wall tablet may, and a light beside Home Assistant's says whether
+  the last read succeeded.
+- The notice after an import or a going back is no longer cut short.
+
 ## 0.1.7
 
 - Import a home: in Home settings > General > Plan, the owner can replace this home's plan with a

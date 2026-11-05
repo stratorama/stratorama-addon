@@ -56,15 +56,16 @@ copy of its database, and a restore starts from it.
 
 ## A home as a file
 
-- **Export**: **Account > Your data > Export as JSON** downloads the home as one file: its floors,
-  rooms, walls and devices, with their links to Home Assistant's entities.
-- **Import**: the owner can replace this home's plan with such a file, with **Import a home file**
-  in **Home settings > General > Plan**. It can come from stratorama.app, where Home settings >
-  Import / Export > **Export as JSON** makes it. The home keeps its name and its people, and the
-  devices of a file from this same Home Assistant work at once.
-- **Versions**: below the import, the last ten plans an import or a going back replaced, each to
-  download, or to return to with **Go back**, which keeps the current plan first. Ordinary edits
-  make none.
+The owner's, in **Home settings > Import / Export**:
+
+- **Export**: **Export as JSON** downloads the home as one file: its floors, rooms, walls and
+  devices, with their links to Home Assistant's entities. The other people of the home ask the
+  owner for it.
+- **Import**: **Import a home file** replaces this home's plan with such a file. It can come from
+  stratorama.app, where the same section's **Export as JSON** makes it. The home keeps its name and
+  its people, and the devices of a file from this same Home Assistant work at once.
+- **Versions**: the last ten plans an import, a going back or the sync replaced, each to download,
+  or to return to with **Go back**, which keeps the current plan first. Ordinary edits make none.
 
 ## Take it online
 
@@ -80,7 +81,22 @@ The plan is copied to Stratorama's server once, and Home Assistant connects to t
 itself, through the agent built into Stratorama: there is nothing to install. From then on the two
 plans are separate: a change to one does not reach the other, and the local home keeps working as
 before, without the internet. To copy a plan across later, export it where it is and import it on
-the other side.
+the other side, or let this home follow the plan there (below).
+
+## Sync with stratorama.app
+
+With Household on stratorama.app, this home can follow its plan there, in
+**Home settings > General > Sync**: change it there, and it changes here within 5 minutes.
+
+1. On stratorama.app, in Home settings > People and tablets, choose **Add a wall tablet**.
+2. Type its code in Stratorama, here, then choose **Sync with stratorama.app**. The current plan is
+   kept under Versions first.
+
+While the sync is on, the plan changes on stratorama.app only: here everybody sees it and controls
+its devices as that wall tablet may there. A light beside Home Assistant's, Stratorama's mark, says
+whether the last read succeeded. The sync stops when the owner chooses **Stop syncing**, when the
+wall tablet is disconnected there, or when that home no longer has Household; the plan then stays as
+it is, and can be edited here again.
 
 ## What leaves your home
 
@@ -93,9 +109,15 @@ Assistant's does.
 Once the home is online, its plan has been copied to stratorama.app, and the agent built into
 Stratorama stays connected there, as Stratorama - Agent does: the states of the devices on the
 online plan, and of those not on it yet while someone there has the device picker open, cross
-Stratorama's relay, in memory, and only the same nine calls come back. How it works:
-[stratorama.app/how-it-connects](https://stratorama.app/how-it-connects); what is kept there:
-[stratorama.app/privacy](https://stratorama.app/privacy).
+Stratorama's relay, in memory, and only the same nine calls come back.
+
+While this home follows stratorama.app, it reads its plan there every 5 minutes and when a screen
+opens, as a wall tablet of that home: stratorama.app keeps that tablet as it keeps every wall
+tablet, its name and when it was paired and last seen. The plan comes here; the sync sends nothing
+back.
+
+How it works: [stratorama.app/how-it-connects](https://stratorama.app/how-it-connects); what is
+kept there: [stratorama.app/privacy](https://stratorama.app/privacy).
 
 ---
 
@@ -158,17 +180,18 @@ Stratorama écrit une copie cohérente de sa base, et une restauration repart de
 
 ## Une maison en fichier
 
-- **Exporter**&nbsp;: **Compte > Vos données > Exporter en JSON** télécharge la maison en un seul
-  fichier&nbsp;: ses étages, ses pièces, ses murs et ses appareils, avec leurs liens vers les entités
-  de Home Assistant.
-- **Importer**&nbsp;: le propriétaire peut remplacer le plan de cette maison par un tel fichier, avec
-  **Importer un fichier de maison** dans **Paramètres de la maison > Général > Plan**. Il peut venir
-  de stratorama.app, où Paramètres de la maison > Import / Export > **Exporter en JSON** le crée. La
+Réservé au propriétaire, dans **Paramètres de la maison > Import / Export**&nbsp;:
+
+- **Exporter**&nbsp;: **Exporter en JSON** télécharge la maison en un seul fichier&nbsp;: ses étages, ses
+  pièces, ses murs et ses appareils, avec leurs liens vers les entités de Home Assistant. Les autres
+  personnes de la maison le demandent au propriétaire.
+- **Importer**&nbsp;: **Importer un fichier de maison** remplace le plan de cette maison par un tel
+  fichier. Il peut venir de stratorama.app, où la même section le crée avec **Exporter en JSON**. La
   maison garde son nom et ses personnes, et les appareils d’un fichier venu de ce même Home Assistant
   fonctionnent aussitôt.
-- **Versions**&nbsp;: sous l’import, les dix derniers plans qu’un import ou un retour a remplacés,
-  chacun à télécharger, ou à retrouver avec **Revenir**, qui conserve d’abord le plan actuel. Les
-  modifications ordinaires n’en créent pas.
+- **Versions**&nbsp;: les dix derniers plans qu’un import, un retour ou la synchronisation ont
+  remplacés, chacun à télécharger, ou à retrouver avec **Revenir**, qui conserve d’abord le plan
+  actuel. Les modifications ordinaires n’en créent pas.
 
 ## Passer en ligne
 
@@ -185,7 +208,26 @@ Le plan est copié une fois sur le serveur de Stratorama, et Home Assistant se c
 à la maison en ligne, par l’agent intégré à Stratorama&nbsp;: rien à installer. Dès lors, les deux
 plans sont indépendants&nbsp;: une modification de l’un n’atteint pas l’autre, et la maison locale
 continue de fonctionner comme avant, sans internet. Pour copier plus tard un plan d’un côté à
-l’autre, exportez-le là où il est et importez-le de l’autre côté.
+l’autre, exportez-le là où il est et importez-le de l’autre côté, ou laissez cette maison suivre le
+plan de là-bas (ci-dessous).
+
+## Synchroniser avec stratorama.app
+
+Avec Foyer sur stratorama.app, cette maison peut suivre son plan là-bas, dans
+**Paramètres de la maison > Général > Synchronisation**&nbsp;: modifiez-le là-bas, il change ici en
+5&nbsp;minutes au plus.
+
+1. Sur stratorama.app, dans Paramètres de la maison > Personnes et tablettes, choisissez **Ajouter
+   une tablette murale**.
+2. Saisissez son code dans Stratorama, ici, puis choisissez **Synchroniser avec stratorama.app**. Le
+   plan actuel est d’abord conservé dans Versions.
+
+Tant que la synchronisation est active, le plan ne se modifie que sur stratorama.app&nbsp;: ici, chacun
+le voit et commande ses appareils comme cette tablette murale le peut là-bas. Un voyant à côté de
+celui de Home Assistant, la marque de Stratorama, indique si la dernière lecture a réussi. La
+synchronisation s’arrête quand le propriétaire choisit **Arrêter la synchronisation**, quand la
+tablette murale y est déconnectée, ou quand cette maison n’a plus Foyer&nbsp;; le plan reste alors
+tel quel, et se modifie de nouveau ici.
 
 ## Ce qui sort de chez vous
 
@@ -199,6 +241,13 @@ Une fois la maison en ligne, son plan a été copié sur stratorama.app, et l’
 Stratorama y reste connecté, comme le fait Stratorama - Agent&nbsp;: les états des appareils du plan
 en ligne, et ceux des appareils qui n’y sont pas encore quand quelqu’un y ouvre le sélecteur
 d’entités, traversent le relais de Stratorama, en mémoire, et seuls les mêmes neuf appels
-reviennent. Comment cela fonctionne&nbsp;:
+reviennent.
+
+Tant que cette maison suit stratorama.app, elle y lit son plan toutes les 5&nbsp;minutes et quand un
+écran s’ouvre, comme une tablette murale de cette maison&nbsp;: stratorama.app conserve cette tablette
+comme toute tablette murale, son nom et quand elle a été appairée et vue pour la dernière fois. Le
+plan vient ici&nbsp;; la synchronisation ne renvoie rien.
+
+Comment cela fonctionne&nbsp;:
 [stratorama.app/fr/how-it-connects](https://stratorama.app/fr/how-it-connects)&nbsp;; ce qui y est
 conservé&nbsp;: [stratorama.app/fr/privacy](https://stratorama.app/fr/privacy).
