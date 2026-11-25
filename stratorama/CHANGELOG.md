@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9
+
+- The devices of a Home Assistant area, placed in one go: a room whose name is the name of a Home
+  Assistant area (or one of the area's aliases), or that was linked to one in Edit room > Home
+  Assistant area, offers that area's devices not yet on the plan at the top of Add element. Tick the
+  ones you want and place them, each already linked, in a row in the room; Undo takes them back.
+  The device picker groups a room's devices by its area too.
+- The agent inside is Stratorama - Agent 1.6.0, which reads Home Assistant's floors and areas for
+  this, from four lists any Home Assistant user may read. Nothing of it leaves the home unless the
+  home is online.
+
 ## 0.1.8
 
 - Import / Export: Home settings has a section of its own for the home as a file, the owner's

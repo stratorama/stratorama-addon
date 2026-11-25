@@ -98,10 +98,19 @@ whether the last read succeeded. The sync stops when the owner chooses **Stop sy
 wall tablet is disconnected there, or when that home no longer has Household; the plan then stays as
 it is, and can be edited here again.
 
+## Devices from your Home Assistant areas
+
+A room whose name is the name of a Home Assistant area (or one of the area's aliases), or that you
+linked to one (Edit room > Home Assistant area), offers that area's devices not yet on the plan: at
+the top of Add element, tick the ones you want and place them, each already linked, in a row in the
+room, then drag them where they belong. Undo takes them back. Only the people who may edit the whole
+home see it.
+
 ## What leaves your home
 
 Nothing, unless the owner takes the home online. The part that runs all the time reaches Home
-Assistant only through the agent's nine calls, in MIT code you can read (`stratorama_agent` in this
+Assistant only through the agent's nine calls and its area map (which area each device is in, read
+from four of Home Assistant's lists), in MIT code you can read (`stratorama_agent` in this
 repository). The page, like every app's panel, acts as you while you use it. Through Home Assistant
 Cloud, the panel's traffic crosses Nabu Casa's relay, encrypted end to end, as all of Home
 Assistant's does.
@@ -109,7 +118,8 @@ Assistant's does.
 Once the home is online, its plan has been copied to stratorama.app, and the agent built into
 Stratorama stays connected there, as Stratorama - Agent does: the states of the devices on the
 online plan, and of those not on it yet while someone there has the device picker open, cross
-Stratorama's relay, in memory, and only the same nine calls come back.
+Stratorama's relay, in memory, as do the names of your areas and floors when someone there edits a
+room or adds a device, and only the same nine calls come back.
 
 While this home follows stratorama.app, it reads its plan there every 5 minutes and when a screen
 opens, as a wall tablet of that home: stratorama.app keeps that tablet as it keeps every wall
@@ -229,10 +239,19 @@ synchronisation s’arrête quand le propriétaire choisit **Arrêter la synchro
 tablette murale y est déconnectée, ou quand cette maison n’a plus Foyer&nbsp;; le plan reste alors
 tel quel, et se modifie de nouveau ici.
 
+## Les appareils de vos pièces Home Assistant
+
+Une pièce du plan qui porte le nom d’une pièce de Home Assistant (ou l’un de ses alias), ou que vous
+y avez associée (Modifier la pièce > Pièce Home Assistant), propose les appareils de cette pièce qui
+ne sont pas encore sur le plan&nbsp;: en tête d’Ajouter un élément, cochez ceux que vous voulez et
+placez-les, déjà liés, en rangée dans la pièce, puis faites-les glisser à leur place. Annuler les
+retire. Seules les personnes qui peuvent modifier toute la maison le voient.
+
 ## Ce qui sort de chez vous
 
 Rien, sauf si le propriétaire passe la maison en ligne. La partie qui tourne en permanence ne
-rejoint Home Assistant que par les neuf appels de l’agent, en code MIT que vous pouvez lire
+rejoint Home Assistant que par les neuf appels de l’agent et sa carte des pièces (la pièce de chaque
+appareil, lue dans quatre listes de Home Assistant), en code MIT que vous pouvez lire
 (`stratorama_agent` dans ce dépôt). La page, comme le panneau de toute application, agit en votre
 nom pendant que vous l’utilisez. Par Home Assistant Cloud, le trafic du panneau traverse le relais
 de Nabu Casa, chiffré de bout en bout, comme tout le trafic de Home Assistant.
@@ -240,7 +259,8 @@ de Nabu Casa, chiffré de bout en bout, comme tout le trafic de Home Assistant.
 Une fois la maison en ligne, son plan a été copié sur stratorama.app, et l’agent intégré à
 Stratorama y reste connecté, comme le fait Stratorama - Agent&nbsp;: les états des appareils du plan
 en ligne, et ceux des appareils qui n’y sont pas encore quand quelqu’un y ouvre le sélecteur
-d’entités, traversent le relais de Stratorama, en mémoire, et seuls les mêmes neuf appels
+d’entités, traversent le relais de Stratorama, en mémoire, comme les noms de vos pièces et de vos
+étages quand quelqu’un y modifie une pièce ou ajoute un élément, et seuls les mêmes neuf appels
 reviennent.
 
 Tant que cette maison suit stratorama.app, elle y lit son plan toutes les 5&nbsp;minutes et quand un
