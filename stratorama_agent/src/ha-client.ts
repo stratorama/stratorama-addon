@@ -5,7 +5,8 @@ import { log } from './log.js';
 /**
  * Communicates with the local Home Assistant instance. Two channels:
  *  - REST: for the calls the relay forwards (the entity snapshot, service calls)
- *  - WS:   to subscribe to `state_changed` and push the events upstream
+ *  - WS:   to subscribe to `state_changed` and push the events upstream, and since 1.6.0 for the
+ *          four registry reads the area map is made of (`request`, ha-area-map.ts)
  *
  * Where it points is config.ts's business: the Supervisor's proxy under Home Assistant OS
  * (`http://supervisor/core`, SUPERVISOR_TOKEN), HA_URL and a long-lived access token in the
@@ -74,6 +75,15 @@ export interface HaWsSubscriberOptions {
 /** After this many attempts that never reached `auth_ok`, say where the agent is knocking. */
 const UNREACHABLE_HINT_AFTER = 3;
 
+/** How long a read (`request`) may wait for Home Assistant's answer. */
+const REQUEST_TIMEOUT_MS = 10_000;
+
+interface PendingRead {
+  resolve: (result: unknown) => void;
+  reject: (error: Error) => void;
+  timer: NodeJS.Timeout;
+}
+
 /**
  * Maintains a long-lived WS connection to HA, authenticates, and subscribes to
  * `state_changed`. Reconnects automatically with exponential backoff, except after an
@@ -89,9 +99,39 @@ export class HaWsSubscriber {
   #subscribeId: number | null = null;
   #reconnectTimer: NodeJS.Timeout | null = null;
   #hintedUnreachable = false;
+  /** Reads sent with `request`, by message id, until Home Assistant answers them. */
+  readonly #pending = new Map<number, PendingRead>();
 
   constructor(opts: HaWsSubscriberOptions) {
     this.#opts = opts;
+  }
+
+  /**
+   * One command over the open connection, resolved with its `result` (1.6.0, for the area map's
+   * registry reads: ha-area-map.ts). Rejects when the connection is not up and subscribed, when Home
+   * Assistant refuses the command, when the connection drops first, or after REQUEST_TIMEOUT_MS.
+   * Which commands may be sent is the caller's to restrict (AREA_MAP_READS, ha-allowlist.ts).
+   */
+  request(type: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<unknown> {
+    const ws = this.#ws;
+    if (!this.#ready || !ws || ws.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error('not connected to Home Assistant'));
+    }
+    const id = this.#nextId++;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.#pending.delete(id);
+        reject(new Error(`no answer to ${type} within ${Math.round(timeoutMs / 1000)} s`));
+      }, timeoutMs);
+      this.#pending.set(id, { resolve, reject, timer });
+      try {
+        ws.send(JSON.stringify({ id, type }));
+      } catch (e) {
+        clearTimeout(timer);
+        this.#pending.delete(id);
+        reject(e as Error);
+      }
+    });
   }
 
   start(): void {
@@ -108,7 +148,16 @@ export class HaWsSubscriber {
     const ws = this.#ws;
     this.#ws = null;
     this.#setReady(false);
+    this.#failPending('the agent is stopping');
     ws?.close();
+  }
+
+  #failPending(why: string): void {
+    for (const [id, read] of this.#pending) {
+      clearTimeout(read.timer);
+      this.#pending.delete(id);
+      read.reject(new Error(why));
+    }
   }
 
   #connect(): void {
@@ -169,6 +218,19 @@ export class HaWsSubscriber {
       return;
     }
 
+    const read = msg.type === 'result' && typeof msg['id'] === 'number' ? this.#pending.get(msg['id']) : undefined;
+    if (read) {
+      this.#pending.delete(msg['id'] as number);
+      clearTimeout(read.timer);
+      if (msg['success'] === true) {
+        read.resolve(msg['result']);
+      } else {
+        const error = msg['error'] as { code?: unknown; message?: unknown } | undefined;
+        read.reject(new Error(`Home Assistant refused it (${String(error?.code ?? 'no code')}: ${String(error?.message ?? 'no reason given')})`));
+      }
+      return;
+    }
+
     if (msg.type === 'result' && msg['id'] === this.#subscribeId) {
       if (msg['success'] === true) {
         this.#setReady(true);
@@ -201,6 +263,7 @@ export class HaWsSubscriber {
     this.#ws = null;
     this.#subscribeId = null;
     this.#setReady(false);
+    this.#failPending('the connection to Home Assistant dropped');
     if (this.#closed) return;
     this.#attempt += 1;
     if (this.#attempt >= UNREACHABLE_HINT_AFTER && !this.#hintedUnreachable) {

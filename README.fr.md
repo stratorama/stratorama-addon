@@ -93,8 +93,8 @@ Home Assistant Container n’a pas de Supervisor&nbsp;: il ne peut donc pas fair
 d’applications Home Assistant. Le même agent existe sous forme d’image Docker simple,
 `ghcr.io/stratorama/stratorama-agent`, pour **amd64** et **arm64**. Il tourne à côté de Home
 Assistant, n’ouvre aucun port et fait exactement ce que fait
-l’application Stratorama - Agent&nbsp;: une seule connexion sortante vers le relais, et les mêmes
-neuf appels à Home Assistant, aucun autre.
+l’application Stratorama - Agent&nbsp;: une seule connexion sortante vers le relais, les mêmes
+neuf appels à Home Assistant et, depuis la 1.6.0, la même carte des pièces, rien d’autre.
 
 ### 1. Créez un jeton d’accès dans Home Assistant
 
@@ -306,6 +306,7 @@ pièce** a changé.
 | Relais -> Home Assistant | `GET /api/states` (l’instantané des entités quand un plan se charge ou quand le sélecteur d’entités s’ouvre&nbsp;; l’agent répond selon ce que précise la requête du relais, voir plus bas) et les appels de service pour les appareils de votre plan&nbsp;: services `light`, `switch` et `cover` seulement (allumer / éteindre, luminosité et couleur, ouvrir / fermer / arrêter / position). L’agent refuse lui-même tout autre appel, d’où qu’il vienne&nbsp;: la liste exacte est dans [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | à la demande |
 | Home Assistant -> relais | les événements `state_changed` des entités de votre plan (ses appareils, leurs relevés, les capteurs de vos portes, votre bibliothèque d’appareils), des cinq domaines ci-dessous et sans les jetons ci-dessous&nbsp;; rien d’autre | en continu |
 | Home Assistant -> relais, sur demande | la liste des entités pour le sélecteur, en deux réponses&nbsp;: toutes les lumières, interrupteurs, volets et capteurs par nom, type et unité, puis ceux qui ne sont pas sur votre plan en entier, avec leur état actuel | quand une personne pouvant modifier tout le plan ouvre le sélecteur |
+| Home Assistant -> relais, sur demande | la carte des pièces (depuis la 1.6.0), que l’agent lit lui-même dans quatre listes de Home Assistant, ses étages, ses pièces, ses appareils et ses entités&nbsp;: les noms de vos étages et de vos pièces, les autres noms auxquels vos pièces répondent et, pour chaque lumière, interrupteur, volet et capteur qui n’est ni masqué ni une entité de configuration ou de diagnostic, sa pièce et le nom de son appareil&nbsp;; jamais le fabricant, le modèle, le numéro de série, l’adresse réseau ni le micrologiciel d’un appareil ([`src/ha-area-map.ts`](stratorama_agent/src/ha-area-map.ts)) | quand une personne pouvant modifier tout le plan modifie une pièce ou ajoute un élément |
 
 Depuis la version 1.4.0, l’agent ne transmet un changement d’état que pour les entités de votre
 plan, que le relais de Stratorama lui indique après chaque connexion et chaque fois que vous

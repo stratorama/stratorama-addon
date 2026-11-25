@@ -4,6 +4,7 @@ import { resolveConfig } from './config.js';
 import { Health } from './health.js';
 import { TunnelClient } from './tunnel-client.js';
 import { HaWsSubscriber, haRestCaller } from './ha-client.js';
+import { readAreaMap } from './ha-area-map.js';
 
 const resolved = resolveConfig(process.env);
 if (!resolved.ok) {
@@ -66,6 +67,8 @@ const tunnel = new TunnelClient({
   version: AGENT_VERSION,
   runtime: config.runtime,
   callHa: haRestCaller(config.ha),
+  // Over the subscriber's own connection, the only one the agent keeps open to Home Assistant.
+  readAreaMap: () => readAreaMap((command) => haSubscriber.request(command)),
   onGiveUp: giveUp,
   onReadyChange: (ready) => health.relay(ready),
 });

@@ -55,10 +55,22 @@ export interface ServerBoundSet {
   entityIds: string[];
 }
 
-export type ServerToAgentMsg = ServerHelloOk | ServerHelloError | ServerHaRequest | ServerBoundSet;
+/**
+ * Which area and floor each light, switch, cover and sensor is in (1.6.0): the agent reads it from
+ * Home Assistant's registries and answers with an `ha:response` of the same requestId, its body the
+ * map cut down at home (ha-area-map.ts), or 502 when Home Assistant did not answer. The relay names
+ * nothing in it - no path, no command, no entity. Sent only to an agent whose hello names the
+ * `area-map` capability.
+ */
+export interface ServerAreaMapRequest {
+  type: 'ha:area-map';
+  requestId: string;
+}
+
+export type ServerToAgentMsg = ServerHelloOk | ServerHelloError | ServerHaRequest | ServerBoundSet | ServerAreaMapRequest;
 
 /** What this agent understands beyond the base protocol, named in every hello. */
-export const AGENT_CAPABILITIES = ['bound-set'] as const;
+export const AGENT_CAPABILITIES = ['bound-set', 'area-map'] as const;
 
 // Agent -> Server
 

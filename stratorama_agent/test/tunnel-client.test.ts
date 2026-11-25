@@ -128,7 +128,7 @@ test('pairs with its version, stores the credential, relays the allowed calls an
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
-      agentCapabilities: ['bound-set'],
+      agentCapabilities: ['bound-set', 'area-map'],
     });
 
     const socket = relay.sockets[0]!;
@@ -467,7 +467,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       agentToken: 'stale-token',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
-      agentCapabilities: ['bound-set'],
+      agentCapabilities: ['bound-set', 'area-map'],
     });
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'invalid_token', message: 'Token agent invalide' });
 
@@ -478,7 +478,7 @@ test('a revoked credential is forgotten and the configured code tried at once', 
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'addon',
-      agentCapabilities: ['bound-set'],
+      agentCapabilities: ['bound-set', 'area-map'],
     });
     assert.equal(existsSync(tokenFile), false);
     assert.deepEqual(gaveUp, []);
@@ -601,7 +601,7 @@ test('the Docker image says so in its hello, and words a refusal for a container
       pairingCode: 'ABCD2345',
       agentVersion: '9.9.9-test',
       agentRuntime: 'docker',
-      agentCapabilities: ['bound-set'],
+      agentCapabilities: ['bound-set', 'area-map'],
     });
     send(relay.sockets[0]!, { type: 'agent:hello-error', code: 'code_used', message: 'Pairing code already used' });
 
@@ -670,5 +670,66 @@ test('a credential that cannot be stored is reported, and the connection still c
     client.stop();
     await relay.close();
     rmSync(tokenFile, { recursive: true, force: true });
+  }
+});
+
+test('the area map is answered from the agent\'s own reads, through the redaction; an agent given none answers 501', async () => {
+  const map = {
+    floors: [{ id: 'first_floor', name: 'First floor', level: 1 }],
+    areas: [{ id: 'bureau', name: 'Bureau', floorId: 'first_floor', aliases: ['Office'] }],
+    entities: [{ entityId: 'light.desk', areaId: 'bureau', deviceId: 'dev-1', deviceName: 'Desk lamp' }],
+  };
+  // A name can hold anything a person typed, a link with its token included: it leaves without it.
+  const leaky = { ...map, areas: [{ ...map.areas[0], name: 'Bureau https://cam.example/live?token=s3cr3tvalue' }] };
+  const relay = await startRelay();
+  let reads = 0;
+  let next: unknown = map;
+  const { client, readiness } = makeClient(relay, {
+    readAreaMap: async () => {
+      reads += 1;
+      return { status: 200, body: next };
+    },
+  });
+  try {
+    client.start();
+    const socket = await registeredWith(relay, readiness, []);
+    const restCallsBefore = haCalls.length;
+    const answer = async (requestId: string) => {
+      send(socket, { type: 'ha:area-map', requestId });
+      await until(() => relay.inbox[0]!.some((m) => m['requestId'] === requestId), requestId);
+      return relay.inbox[0]!.find((m) => m['requestId'] === requestId)!;
+    };
+
+    assert.deepEqual(await answer('map-1'), { type: 'ha:response', requestId: 'map-1', status: 200, body: map });
+    next = leaky;
+    const redacted = await answer('map-2');
+    assert.equal(JSON.stringify(redacted).includes('s3cr3tvalue'), false);
+    assert.equal(reads, 2);
+    // Read over the agent's own connection, never through a relayed REST call.
+    assert.equal(haCalls.length, restCallsBefore);
+
+    // No requestId: nothing to answer, nothing read.
+    const before = relay.inbox[0]!.length;
+    send(socket, { type: 'ha:area-map' });
+    await answer('map-3');
+    assert.equal(relay.inbox[0]!.length, before + 1);
+    assert.equal(reads, 3);
+  } finally {
+    client.stop();
+    await relay.close();
+  }
+
+  const older = await startRelay();
+  const { client: bare, readiness: bareReady } = makeClient(older);
+  try {
+    bare.start();
+    const socket = await registeredWith(older, bareReady, []);
+    send(socket, { type: 'ha:area-map', requestId: 'map-x' });
+    await until(() => older.inbox[0]!.some((m) => m['requestId'] === 'map-x'), 'the refusal');
+    const refusal = older.inbox[0]!.find((m) => m['requestId'] === 'map-x')!;
+    assert.equal(refusal['status'], 501);
+  } finally {
+    bare.stop();
+    await older.close();
   }
 });

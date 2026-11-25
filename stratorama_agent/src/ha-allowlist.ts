@@ -24,6 +24,24 @@ export const ALLOWED_HA_CALLS: ReadonlyArray<readonly ['GET' | 'POST', string]> 
   ['POST', '/api/services/cover/set_cover_position'],
 ];
 
+/**
+ * The only WebSocket commands this agent sends Home Assistant besides its `state_changed`
+ * subscription (1.6.0): four READS of Home Assistant's registries, made by the agent itself to
+ * answer one question from the relay, `ha:area-map` - which area and floor each light, switch,
+ * cover and sensor is in (ha-area-map.ts). The relay never names a command, a path or an entity
+ * there: it asks for the map, and these four lists are what the agent reads it from, then cuts down
+ * at home before anything leaves. Each is a read any Home Assistant user may make, administrator or
+ * not (measured on Home Assistant 2026.11); nothing here writes.
+ */
+export const AREA_MAP_READS = [
+  'config/floor_registry/list',
+  'config/area_registry/list',
+  'config/device_registry/list',
+  'config/entity_registry/list_for_display',
+] as const;
+
+export type AreaMapRead = (typeof AREA_MAP_READS)[number];
+
 const allowed = new Set(ALLOWED_HA_CALLS.map(([method, path]) => `${method} ${path}`));
 
 export function isAllowedHaCall(method: unknown, path: unknown): boolean {

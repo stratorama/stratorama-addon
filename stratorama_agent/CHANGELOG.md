@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.6.0
+
+**A room on your plan can offer the devices of its Home Assistant area**
+
+- When someone who edits your whole home opens a room, Stratorama can now ask the agent which
+  area, and so which floor, each light, switch, cover and sensor is in. A room whose name is the
+  name of a Home Assistant area (or one of its aliases), or that you linked to one, then offers
+  that area's devices not yet on the plan, placed and linked in one go.
+- The agent answers from four lists Home Assistant keeps, its floors, its areas, its devices and
+  its entities, which any Home Assistant user may read: the access token of a user without
+  administrator rights is enough, as before. The relay only asks for the map; it never names what
+  to read.
+- What leaves your home is cut down here first: the names of your floors and areas, the other
+  names your areas answer to, and for each light, switch, cover and sensor that is neither hidden
+  nor a configuration or diagnostic entity, its area and the name of its device. Never a device's
+  manufacturer, model, serial number, network address or firmware, and nothing about any other
+  kind of entity.
+- Nothing else changes: the same nine calls to Home Assistant, the same states sent to the relay.
+
 ## 1.5.1
 
 **A supported Node.js, with the October 2026 security fixes**

@@ -81,8 +81,8 @@ door, motion or leak sensor). What comes next is in [Using the plan](#using-the-
 Home Assistant Container has no Supervisor, so it cannot run Home Assistant apps. The same
 agent ships as a plain Docker image instead, `ghcr.io/stratorama/stratorama-agent`, for
 **amd64** and **arm64**. It runs next to Home Assistant, opens no port, and does exactly what
-the app does: one outbound connection to the relay, and the same nine calls to Home
-Assistant, no others.
+the app does: one outbound connection to the relay, the same nine calls to Home Assistant and,
+from 1.6.0, the same area map, nothing else.
 
 ### 1. Create an access token in Home Assistant
 
@@ -273,6 +273,7 @@ whole apply back in one press.
 | Relay -> Home Assistant | `GET /api/states` (the entity snapshot when a plan loads or the entity picker opens; the app answers with what the relay's request names, below) and service calls for the devices on your plan: `light`, `switch` and `cover` services only (turn on / off, brightness and colour, open / close / stop / position). The app itself refuses any other call, whoever asks: the exact list is [`src/ha-allowlist.ts`](stratorama_agent/src/ha-allowlist.ts) | on demand |
 | Home Assistant -> relay | the `state_changed` events of the entities on your plan (its devices, their readings, your doors' sensors, your device library), of the five domains below and without the tokens below; nothing else | continuous |
 | Home Assistant -> relay, on request | the entity list for the picker, in two answers: every light, switch, cover and sensor by name, kind and unit, then those that are not on your plan in full, with their current state | when someone who may edit the whole plan opens the picker |
+| Home Assistant -> relay, on request | the area map (since 1.6.0), read by the app itself from four of Home Assistant's lists, its floors, areas, devices and entities: the names of your floors and areas, the other names your areas answer to, and for each light, switch, cover and sensor neither hidden nor a configuration or diagnostic entity, its area and its device's name; never a device's manufacturer, model, serial number, network address or firmware ([`src/ha-area-map.ts`](stratorama_agent/src/ha-area-map.ts)) | when someone who may edit the whole plan edits a room or adds a device |
 
 Since 1.4.0 the app forwards a state change only for the entities on your plan, which
 Stratorama's relay names after every connection and whenever you link or unlink something;

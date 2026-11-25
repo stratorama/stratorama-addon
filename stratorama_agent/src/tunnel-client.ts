@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import type { AgentRuntime } from './config.js';
 import { log } from './log.js';
-import type { HaRestCall } from './ha-client.js';
+import type { HaRestCall, HaRestResult } from './ha-client.js';
 import { loadToken, saveToken, clearToken, TOKEN_FILE } from './token-store.js';
 import { isAllowedHaCall } from './ha-allowlist.js';
 import { isForwardedEntity, keepForwardedStates } from './ha-domains.js';
@@ -14,7 +14,8 @@ import { AGENT_CAPABILITIES, type AgentToServerMsg, type ServerToAgentMsg } from
 /**
  * Maintains the long-lived WebSocket to the Stratorama relay: authenticates (pair once
  * with a code, then reconnect with the stored credential), answers the relay's
- * `ha:request` messages from the local Home Assistant REST API, and pushes
+ * `ha:request` messages from the local Home Assistant REST API and, since 1.6.0, its
+ * `ha:area-map` from Home Assistant's registries (ha-area-map.ts), and pushes
  * `state_changed` events upstream through `pushEvent()`.
  *
  * Five things it does NOT do, on purpose:
@@ -43,6 +44,11 @@ export interface TunnelClientOptions {
   runtime: AgentRuntime;
   /** Answers an allowed `ha:request` from Home Assistant (ha-client.ts `haRestCaller`). */
   callHa: HaRestCall;
+  /**
+   * Answers `ha:area-map` (1.6.0): the map read from Home Assistant's registries and cut down at
+   * home (ha-area-map.ts `readAreaMap`). Never rejects. Without it the request is answered 501.
+   */
+  readAreaMap?: () => Promise<HaRestResult>;
   /** Called once, after the client has stopped, with the line already written to the log. */
   onGiveUp: (reason: string) => void;
   /** True once registered with the relay, false whenever that registration is lost. */
@@ -290,6 +296,22 @@ export class TunnelClient {
         // view the relay asked for (ha-views.ts), then cleaned of Home Assistant's tokens.
         body: msg.method === 'POST' ? null : redactTokens(applyView(keepForwardedStates(result.body), parseView(msg.view))),
       });
+      return;
+    }
+
+    if (msg.type === 'ha:area-map') {
+      if (typeof msg.requestId !== 'string') {
+        log.warn('Refusing an ha:area-map without a requestId');
+        return;
+      }
+      if (!this.#opts.readAreaMap) {
+        this.#send({ type: 'ha:response', requestId: msg.requestId, status: 501, body: { error: 'area map not read by this agent' } });
+        return;
+      }
+      const result = await this.#opts.readAreaMap();
+      // Already cut down to what may leave (ha-area-map.ts); through the redaction like every
+      // answer, so that no path out of this door can skip it.
+      this.#send({ type: 'ha:response', requestId: msg.requestId, status: result.status, body: redactTokens(result.body) });
       return;
     }
 

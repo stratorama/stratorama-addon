@@ -51,6 +51,12 @@ folder), so restarts and Home Assistant updates reconnect on their own. You can 
   travels through Stratorama's server **in memory only**: it is never written to disk there,
   and each browser or wall tablet is only sent the entities bound to the parts of the plan it
   may see, apart from that picker list.
+- Since 1.6.0, when someone who may edit the whole plan edits a room or adds a device, it
+  reads four of Home Assistant's lists itself (floors, areas, devices, entities) and sends only
+  the **names of your floors and areas**, the other names your areas answer to, and the **area
+  of each light, switch, cover and sensor**, with its device's name, so that a room can offer
+  the devices of its area. Never a device's manufacturer, model, serial number, network
+  address or firmware, and nothing about any other kind of entity.
 - It never reads your history or logbook, never touches automations, and never sends
   Home Assistant credentials anywhere: the Supervisor gives the app a local token that
   stays inside the app. The tokens Home Assistant itself puts in some states (an
@@ -163,6 +169,13 @@ resservira qu’après une déconnexion.
   **uniquement en mémoire**&nbsp;: rien n’y est écrit sur disque, et chaque navigateur ou tablette
   murale ne reçoit que les entités liées aux parties du plan qu’il a le droit de voir, en dehors de
   cette liste du sélecteur.
+- Depuis la 1.6.0, quand une personne pouvant modifier tout le plan modifie une pièce ou ajoute
+  un élément, il lit lui-même quatre listes de Home Assistant (étages, pièces, appareils,
+  entités) et n’envoie que les **noms de vos étages et de vos pièces**, les autres noms auxquels
+  vos pièces répondent, et la **pièce de chaque lumière, interrupteur, volet et capteur**, avec le
+  nom de son appareil, pour qu’une pièce du plan propose les appareils de sa pièce Home Assistant.
+  Jamais le fabricant, le modèle, le numéro de série, l’adresse réseau ni le micrologiciel d’un
+  appareil, et rien sur les autres types d’entités.
 - Il ne lit jamais l’**Historique** ni l’**Activité** de Home Assistant, ne touche jamais aux
   automatisations et n’envoie jamais d’identifiants Home Assistant nulle part&nbsp;: le
   Supervisor donne à l’agent un jeton local qui ne quitte pas l’agent. Les jetons que Home

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ALLOWED_HA_CALLS, isAllowedHaCall } from '../src/ha-allowlist.js';
+import { ALLOWED_HA_CALLS, AREA_MAP_READS, isAllowedHaCall } from '../src/ha-allowlist.js';
 import { FORWARDED_DOMAINS } from '../src/ha-domains.js';
 
 test('every domain the agent can act on is one whose states it forwards', () => {
@@ -47,4 +47,16 @@ test('a method or path that is not a string is refused', () => {
   assert.equal(isAllowedHaCall('GET', undefined), false);
   assert.equal(isAllowedHaCall(['GET'], '/api/states'), false);
   assert.equal(isAllowedHaCall('GET', { path: '/api/states' }), false);
+});
+
+test('the area map is read from four registry lists, and nothing it reads writes', () => {
+  // The relay asks for the map; it never names a command. These are the only ones the agent sends
+  // for it, each a list any Home Assistant user may read (measured on 2026.11).
+  assert.deepEqual([...AREA_MAP_READS], [
+    'config/floor_registry/list',
+    'config/area_registry/list',
+    'config/device_registry/list',
+    'config/entity_registry/list_for_display',
+  ]);
+  for (const command of AREA_MAP_READS) assert.match(command, /^config\/[a-z_]+_registry\/list(_for_display)?$/);
 });

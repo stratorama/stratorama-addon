@@ -60,6 +60,14 @@ async function startFakeHa(goodToken: string): Promise<FakeHa> {
           }),
         );
       }
+      // Registry reads (the area map): answered with what was asked, refused, or left unanswered.
+      if (typeof msg['type'] === 'string' && msg['type'].startsWith('config/')) {
+        if (msg['type'] === 'config/refused_registry/list') {
+          socket.send(JSON.stringify({ id: msg['id'], type: 'result', success: false, error: { code: 'unauthorized', message: 'Unauthorized' } }));
+        } else if (msg['type'] !== 'config/silent_registry/list') {
+          socket.send(JSON.stringify({ id: msg['id'], type: 'result', success: true, result: [{ asked: msg['type'] }] }));
+        }
+      }
     });
   });
   return ha;
@@ -181,4 +189,35 @@ test('the REST caller relays status and body, and answers 502 when Home Assistan
   }
   const gone = await haRestCaller({ httpUrl: base, token: 't' })('GET', '/api/states');
   assert.equal(gone.status, 502);
+});
+
+test('a read over the open connection: answered, refused, unanswered, cut by a drop, or refused before it is up', async () => {
+  const ha = await startFakeHa('good-token');
+  const readiness: boolean[] = [];
+  const subscriber = new HaWsSubscriber({
+    endpoints: { wsUrl: ha.wsUrl, token: 'good-token' },
+    onEvent: () => {},
+    onReadyChange: (ready) => readiness.push(ready),
+    maxBackoffMs: 50,
+  });
+  try {
+    await assert.rejects(subscriber.request('config/area_registry/list'), /not connected to Home Assistant/);
+    subscriber.start();
+    await until(() => readiness.includes(true), 'the subscription');
+
+    assert.deepEqual(await subscriber.request('config/area_registry/list'), [{ asked: 'config/area_registry/list' }]);
+    // Sent as Home Assistant expects a command: an id of its own, the type, nothing else.
+    const sent = ha.received.find((m) => m['type'] === 'config/area_registry/list');
+    assert.deepEqual(Object.keys(sent ?? {}).sort(), ['id', 'type']);
+
+    await assert.rejects(subscriber.request('config/refused_registry/list'), /unauthorized: Unauthorized/);
+    await assert.rejects(subscriber.request('config/silent_registry/list', 50), /no answer to config\/silent_registry\/list/);
+
+    const cut = subscriber.request('config/silent_registry/list');
+    ha.sockets[0]!.terminate();
+    await assert.rejects(cut, /dropped/);
+  } finally {
+    subscriber.stop();
+    await ha.close();
+  }
 });
